@@ -48,13 +48,11 @@ export function SessionGoalTracker({ scriptContent }: SessionGoalTrackerProps) {
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className={`gap-2 ${isGoalMet ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
-          {isGoalMet ? <Trophy size={14} /> : <Target size={14} />}
-          <span className="hidden sm:inline">
-            {pagesWritten.toFixed(1)} / {goalPages} pages
-          </span>
-        </Button>
+      <PopoverTrigger render={<Button variant="ghost" size="sm" className={`gap-2 ${isGoalMet ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />}>
+        {isGoalMet ? <Trophy size={14} /> : <Target size={14} />}
+        <span className="hidden sm:inline">
+          {pagesWritten.toFixed(1)} / {goalPages} pages
+        </span>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-4" align="end">
         <div className="space-y-4">

@@ -93,11 +93,9 @@ export function Dashboard() {
           </div>
           
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus size={16} />
-                New Project
-              </Button>
+            <DialogTrigger render={<Button className="gap-2" />}>
+              <Plus size={16} />
+              New Project
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
