@@ -1,0 +1,195 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "nate.lacroix@gmail.com" && request.auth.token.email_verified == true));
+    }
+    
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+    
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+    
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'email', 'displayName', 'role', 'createdAt']) &&
+             hasRequiredFields(['uid', 'email', 'role', 'createdAt']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+             data.email is string && isValidEmail(data.email) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
+             data.role in ['admin', 'user'] &&
+             data.createdAt is string;
+    }
+    
+    function isValidProject(data) {
+      return hasOnlyAllowedFields(['id', 'title', 'description', 'ownerId', 'collaborators', 'createdAt', 'updatedAt']) &&
+             hasRequiredFields(['id', 'title', 'ownerId', 'createdAt', 'updatedAt']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             (!('description' in data) || (data.description is string && data.description.size() < 2000)) &&
+             data.ownerId is string && data.ownerId.size() > 0 && data.ownerId.size() < 100 &&
+             (!('collaborators' in data) || (data.collaborators is list && data.collaborators.size() < 100)) &&
+             data.createdAt is string &&
+             data.updatedAt is string;
+    }
+    
+    function isValidScene(data) {
+      return hasOnlyAllowedFields(['id', 'projectId', 'title', 'description', 'content', 'scriptBlocks', 'order', 'status', 'createdAt', 'updatedAt']) &&
+             hasRequiredFields(['id', 'projectId', 'title', 'order', 'status', 'createdAt', 'updatedAt']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.projectId is string && data.projectId.size() > 0 && data.projectId.size() < 100 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             (!('description' in data) || (data.description is string && data.description.size() < 2000)) &&
+             (!('content' in data) || (data.content is string && data.content.size() < 100000)) &&
+             (!('scriptBlocks' in data) || (data.scriptBlocks is list)) &&
+             data.order is number &&
+             data.status in ['draft', 'revised', 'final'] &&
+             data.createdAt is string &&
+             data.updatedAt is string;
+    }
+
+    function isValidCharacter(data) {
+      return hasOnlyAllowedFields(['id', 'projectId', 'name', 'role', 'description', 'traits', 'createdAt', 'updatedAt']) &&
+             hasRequiredFields(['id', 'projectId', 'name', 'createdAt', 'updatedAt']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.projectId is string && data.projectId.size() > 0 && data.projectId.size() < 100 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             (!('role' in data) || (data.role is string && data.role.size() < 100)) &&
+             (!('description' in data) || (data.description is string && data.description.size() < 5000)) &&
+             (!('traits' in data) || (data.traits is string && data.traits.size() < 2000)) &&
+             data.createdAt is string &&
+             data.updatedAt is string;
+    }
+
+    function isValidProductionElement(data) {
+      return hasOnlyAllowedFields(['id', 'projectId', 'category', 'name', 'description', 'sceneId', 'createdAt', 'updatedAt']) &&
+             hasRequiredFields(['id', 'projectId', 'category', 'name', 'createdAt', 'updatedAt']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.projectId is string && data.projectId.size() > 0 && data.projectId.size() < 100 &&
+             data.category in ['crew', 'prop', 'location', 'music', 'sfx', 'vfx'] &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             (!('description' in data) || (data.description is string && data.description.size() < 5000)) &&
+             (!('sceneId' in data) || (data.sceneId is string && data.sceneId.size() < 100)) &&
+             data.createdAt is string &&
+             data.updatedAt is string;
+    }
+    
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    isOwner(userId) && request.resource.data.uid == userId && 
+                    (request.resource.data.role == 'user' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    isOwner(userId) && request.resource.data.uid == userId &&
+                    areImmutableFieldsUnchanged(['uid', 'createdAt']) &&
+                    (request.resource.data.role == resource.data.role || isAdmin());
+    }
+    
+    match /projects/{projectId} {
+      function isProjectOwner() {
+        return isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      }
+      function isProjectCollaborator() {
+        return isAuthenticated() && ('collaborators' in resource.data) && request.auth.uid in resource.data.collaborators;
+      }
+      
+      allow read: if isProjectOwner() || isProjectCollaborator() || isAdmin();
+      
+      allow create: if isAuthenticated() && isValidProject(request.resource.data) && 
+                    request.resource.data.ownerId == request.auth.uid;
+                    
+      allow update: if isAuthenticated() && isValidProject(request.resource.data) && 
+                    (isProjectOwner() || isProjectCollaborator() || isAdmin()) &&
+                    areImmutableFieldsUnchanged(['id', 'ownerId', 'createdAt']) &&
+                    // Only owner or admin can change collaborators
+                    (areImmutableFieldsUnchanged(['collaborators']) || isProjectOwner() || isAdmin());
+                    
+      allow delete: if isProjectOwner() || isAdmin();
+      
+      match /scenes/{sceneId} {
+        function canAccessProject() {
+          let project = get(/databases/$(database)/documents/projects/$(projectId)).data;
+          return isAuthenticated() && (project.ownerId == request.auth.uid || ('collaborators' in project && request.auth.uid in project.collaborators));
+        }
+        
+        allow read: if canAccessProject() || isAdmin();
+        
+        allow create: if canAccessProject() && isValidScene(request.resource.data) && 
+                      request.resource.data.projectId == projectId;
+                      
+        allow update: if canAccessProject() && isValidScene(request.resource.data) && 
+                      areImmutableFieldsUnchanged(['id', 'projectId', 'createdAt']);
+                      
+        allow delete: if canAccessProject() || isAdmin();
+      }
+
+      match /characters/{characterId} {
+        function canAccessProject() {
+          let project = get(/databases/$(database)/documents/projects/$(projectId)).data;
+          return isAuthenticated() && (project.ownerId == request.auth.uid || ('collaborators' in project && request.auth.uid in project.collaborators));
+        }
+        
+        allow read: if canAccessProject() || isAdmin();
+        
+        allow create: if canAccessProject() && isValidCharacter(request.resource.data) && 
+                      request.resource.data.projectId == projectId;
+                      
+        allow update: if canAccessProject() && isValidCharacter(request.resource.data) && 
+                      areImmutableFieldsUnchanged(['id', 'projectId', 'createdAt']);
+                      
+        allow delete: if canAccessProject() || isAdmin();
+      }
+
+      match /productionElements/{elementId} {
+        function canAccessProject() {
+          let project = get(/databases/$(database)/documents/projects/$(projectId)).data;
+          return isAuthenticated() && (project.ownerId == request.auth.uid || ('collaborators' in project && request.auth.uid in project.collaborators));
+        }
+        
+        allow read: if canAccessProject() || isAdmin();
+        
+        allow create: if canAccessProject() && isValidProductionElement(request.resource.data) && 
+                      request.resource.data.projectId == projectId;
+                      
+        allow update: if canAccessProject() && isValidProductionElement(request.resource.data) && 
+                      areImmutableFieldsUnchanged(['id', 'projectId', 'createdAt']);
+                      
+        allow delete: if canAccessProject() || isAdmin();
+      }
+    }
+  }
+}
