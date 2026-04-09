@@ -25,9 +25,17 @@ You must configure the following environment variables in your Coolify project s
 - `NODE_ENV`: Set to `production`.
 
 ### Firebase Configuration
-Since this app uses Firebase, ensure that your `firebase-applet-config.json` is either committed to your repository OR you pass the Firebase configuration via environment variables and update `src/firebase.ts` to read from them. 
+Since this app uses Firebase, you must pass the Firebase configuration via environment variables. The app has been updated to read these from the environment instead of a static file.
 
-If you are using the default AI Studio Firebase setup, the `firebase-applet-config.json` is already in your project root. Just make sure it gets pushed to your GitHub repo.
+Add the following variables to your Coolify environment (you can find these values in your Firebase Console under Project Settings):
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+- `VITE_FIRESTORE_DATABASE_ID` (If using the default database, this is usually `(default)`)
 
 ## Troubleshooting
 
