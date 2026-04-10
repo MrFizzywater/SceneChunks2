@@ -1,8 +1,4 @@
 import { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/dialog';
-import { Button } from '@/components/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/tabs';
-import { Textarea } from '@/components/textarea';
 import { Upload, Loader2, FileText, ClipboardPaste } from 'lucide-react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
@@ -19,7 +15,7 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pastedText, setPastedText] = useState('');
-  const [importMode, setImportMode] = useState('upload');
+  const [importMode, setImportMode] = useState<'upload' | 'paste'>('upload');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,35 +112,50 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
     }
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-w-md w-full flex flex-col">
+        
+        <div className="flex flex-col space-y-1.5 p-6 border-b border-slate-100 dark:border-slate-800 shrink-0">
+          <h2 className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
             <Upload className="text-indigo-500" size={20} />
             Import Script
-          </DialogTitle>
-          <DialogDescription>
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
             Upload a .txt file or paste your script. Our AI will parse it into scenes, characters, and script blocks automatically.
-          </DialogDescription>
-        </DialogHeader>
+          </p>
+        </div>
 
-        <div className="py-4">
+        <div className="p-6">
           {loading ? (
-            <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed rounded-lg bg-muted/20">
+            <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800/30">
               <Loader2 size={40} className="mb-4 animate-spin text-indigo-500" />
               <p className="font-medium">Parsing Script...</p>
-              <p className="text-xs text-muted-foreground mt-2 text-center px-4">This may take a minute or two depending on length. The AI is breaking down your scenes and characters.</p>
+              <p className="text-xs text-slate-500 mt-2 text-center px-4">
+                This may take a minute or two depending on length. The AI is breaking down your scenes and characters.
+              </p>
             </div>
           ) : (
-            <Tabs value={importMode} onValueChange={setImportMode} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="upload" className="gap-2"><FileText size={14} /> Upload File</TabsTrigger>
-                <TabsTrigger value="paste" className="gap-2"><ClipboardPaste size={14} /> Paste Text</TabsTrigger>
-              </TabsList>
+            <div className="w-full">
+              <div className="grid w-full grid-cols-2 mb-4 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                <button 
+                  onClick={() => setImportMode('upload')}
+                  className={`inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${importMode === 'upload' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500'}`}
+                >
+                  <FileText size={14} /> Upload File
+                </button>
+                <button 
+                  onClick={() => setImportMode('paste')}
+                  className={`inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${importMode === 'paste' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500'}`}
+                >
+                  <ClipboardPaste size={14} /> Paste Text
+                </button>
+              </div>
               
-              <TabsContent value="upload">
-                <div className="py-8 flex flex-col items-center justify-center border-2 border-dashed rounded-lg bg-muted/20">
+              {importMode === 'upload' && (
+                <div className="py-8 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800/30">
                   <input 
                     type="file" 
                     accept=".txt" 
@@ -153,51 +164,57 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
                     onChange={handleFileChange}
                   />
                   <div 
-                    className="text-center cursor-pointer p-4 hover:bg-muted/50 rounded-md transition-colors w-full"
+                    className="text-center cursor-pointer p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors w-full"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <FileText size={40} className="mx-auto mb-4 text-muted-foreground" />
+                    <FileText size={40} className="mx-auto mb-4 text-slate-400" />
                     {selectedFile ? (
                       <p className="font-medium text-indigo-600 dark:text-indigo-400 break-all px-4">{selectedFile.name}</p>
                     ) : (
                       <>
                         <p className="font-medium">Click to select a .txt file</p>
-                        <p className="text-xs text-muted-foreground mt-1">Standard screenplay format works best</p>
+                        <p className="text-xs text-slate-500 mt-1">Standard screenplay format works best</p>
                       </>
                     )}
                   </div>
                 </div>
-              </TabsContent>
+              )}
               
-              <TabsContent value="paste">
-                <Textarea 
+              {importMode === 'paste' && (
+                <textarea 
                   value={pastedText}
                   onChange={(e) => setPastedText(e.target.value)}
                   placeholder="Paste your script text here..."
-                  className="min-h-[200px] font-mono text-sm resize-none"
+                  className="flex min-h-[200px] w-full rounded-md border border-slate-300 dark:border-slate-700 bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono resize-none"
                 />
-              </TabsContent>
-            </Tabs>
+              )}
+            </div>
           )}
         </div>
 
         {error && (
-          <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
+          <div className="mx-6 mb-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
             {error}
           </div>
         )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
-          <Button 
+        <div className="flex items-center justify-end p-6 border-t border-slate-100 dark:border-slate-800 shrink-0 gap-2">
+          <button 
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 h-10 px-4 py-2"
+            onClick={() => onOpenChange(false)} 
+            disabled={loading}
+          >
+            Cancel
+          </button>
+          <button 
             onClick={handleImport} 
             disabled={loading || (importMode === 'upload' ? !selectedFile : !pastedText.trim())}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 h-10 px-4 py-2"
           >
             {loading ? 'Importing...' : 'Import'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

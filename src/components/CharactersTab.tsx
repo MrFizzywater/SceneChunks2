@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, query, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { Button } from '@/components/button';
-import { Input } from '@/components/input';
-import { Textarea } from '@/components/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/card';
 import { Plus, Trash2, User } from 'lucide-react';
 import { useDebouncedCallback } from '../hooks/useDebounce';
 
@@ -83,19 +79,22 @@ export function CharactersTab({ projectId }: CharactersTabProps) {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading characters...</div>;
+  if (loading) return <div className="p-8 text-center text-slate-500">Loading characters...</div>;
 
   return (
     <div className="max-w-6xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Characters</h2>
-          <p className="text-muted-foreground">Design and manage the characters in your story.</p>
+          <p className="text-slate-500">Design and manage the characters in your story.</p>
         </div>
-        <Button onClick={handleAddCharacter} className="gap-2">
+        <button 
+          onClick={handleAddCharacter} 
+          className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 h-10 px-4 py-2"
+        >
           <Plus size={16} />
           Add Character
-        </Button>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -108,10 +107,15 @@ export function CharactersTab({ projectId }: CharactersTabProps) {
           />
         ))}
         {characters.length === 0 && (
-          <div className="col-span-full text-center p-12 border border-dashed rounded-lg text-muted-foreground">
+          <div className="col-span-full text-center p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-slate-500">
             <User size={48} className="mx-auto mb-4 opacity-20" />
             <p>No characters yet.</p>
-            <Button variant="link" onClick={handleAddCharacter}>Create your first character</Button>
+            <button 
+              className="text-indigo-600 hover:underline mt-2 font-medium" 
+              onClick={handleAddCharacter}
+            >
+              Create your first character
+            </button>
           </div>
         )}
       </div>
@@ -135,46 +139,51 @@ function CharacterCard({ character, onUpdate, onDelete }: { character: Character
   }, 500);
 
   return (
-    <Card className="flex flex-col group relative overflow-hidden">
+    <div className="flex flex-col group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive bg-background/80 hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(character.id)}>
+        <button 
+          className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-8 w-8 text-red-500 bg-white/80 dark:bg-slate-900/80 hover:bg-red-500 hover:text-white backdrop-blur-sm" 
+          onClick={() => onDelete(character.id)}
+        >
           <Trash2 size={14} />
-        </Button>
+        </button>
       </div>
-      <CardHeader className="pb-3 bg-muted/30">
-        <Input 
+      
+      <div className="flex flex-col p-4 pb-3 bg-slate-50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
+        <input 
           value={name} 
           onChange={(e) => { setName(e.target.value); debouncedUpdate(character.id, { name: e.target.value }); }}
-          className="font-bold text-lg border-transparent px-1 h-8 focus-visible:ring-1 bg-transparent"
+          className="font-bold text-lg border-transparent px-1 h-8 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent rounded"
           placeholder="Character Name"
         />
-        <Input 
+        <input 
           value={role} 
           onChange={(e) => { setRole(e.target.value); debouncedUpdate(character.id, { role: e.target.value }); }}
-          className="text-sm text-muted-foreground border-transparent px-1 h-7 focus-visible:ring-1 bg-transparent"
+          className="text-sm text-slate-500 border-transparent px-1 h-7 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent rounded mt-1"
           placeholder="Role (e.g., Protagonist, Antagonist)"
         />
-      </CardHeader>
-      <CardContent className="pt-4 space-y-4 flex-1">
+      </div>
+
+      <div className="p-4 pt-4 space-y-4 flex-1">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground px-1">Description & Backstory</label>
-          <Textarea 
+          <label className="text-xs font-medium text-slate-500 px-1">Description & Backstory</label>
+          <textarea 
             value={description}
             onChange={(e) => { setDescription(e.target.value); debouncedUpdate(character.id, { description: e.target.value }); }}
             placeholder="Who are they? Where do they come from?"
-            className="resize-none min-h-[100px] text-sm"
+            className="flex min-h-[100px] w-full rounded-md border border-slate-200 dark:border-slate-700 bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground px-1">Personality & Traits</label>
-          <Textarea 
+          <label className="text-xs font-medium text-slate-500 px-1">Personality & Traits</label>
+          <textarea 
             value={traits}
             onChange={(e) => { setTraits(e.target.value); debouncedUpdate(character.id, { traits: e.target.value }); }}
             placeholder="Strengths, weaknesses, quirks..."
-            className="resize-none min-h-[80px] text-sm"
+            className="flex min-h-[80px] w-full rounded-md border border-slate-200 dark:border-slate-700 bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

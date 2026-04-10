@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/dialog';
-import { Button } from '@/components/button';
 import { Wand2, Loader2 } from 'lucide-react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
@@ -86,25 +84,28 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
     }
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-w-md w-full flex flex-col">
+        
+        <div className="flex flex-col space-y-1.5 p-6 border-b border-slate-100 dark:border-slate-800 shrink-0">
+          <h2 className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
             <Wand2 className="text-indigo-500" size={20} />
             Auto-Extract Elements
-          </DialogTitle>
-          <DialogDescription>
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
             Our AI will read your current script and automatically populate your Characters and Production tabs.
-          </DialogDescription>
-        </DialogHeader>
+          </p>
+        </div>
 
-        <div className="py-6 flex flex-col items-center justify-center">
+        <div className="p-6 py-8 flex flex-col items-center justify-center min-h-[200px]">
           {loading ? (
             <div className="text-center flex flex-col items-center">
               <Loader2 size={40} className="mb-4 animate-spin text-indigo-500" />
               <p className="font-medium">Analyzing Script...</p>
-              <p className="text-xs text-muted-foreground mt-2">Extracting characters, props, locations, and more.</p>
+              <p className="text-xs text-slate-500 mt-2">Extracting characters, props, locations, and more.</p>
             </div>
           ) : success ? (
             <div className="text-center text-green-600 dark:text-green-400">
@@ -113,7 +114,7 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
               <p className="text-xs mt-2">Check your Characters and Production tabs.</p>
             </div>
           ) : (
-            <div className="text-center text-muted-foreground">
+            <div className="text-center text-slate-500">
               <Wand2 size={48} className="mx-auto mb-4 opacity-20" />
               <p>Ready to scan your script.</p>
               <p className="text-sm mt-2">This will add new entries without deleting existing ones.</p>
@@ -122,22 +123,28 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
         </div>
 
         {error && (
-          <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
+          <div className="mx-6 mb-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
             {error}
           </div>
         )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Close</Button>
-          <Button 
+        <div className="flex items-center justify-end p-6 border-t border-slate-100 dark:border-slate-800 shrink-0 gap-2">
+          <button 
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 h-10 px-4 py-2"
+            onClick={() => onOpenChange(false)} 
+            disabled={loading}
+          >
+            Close
+          </button>
+          <button 
             onClick={handleExtract} 
             disabled={loading || success}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 h-10 px-4 py-2"
           >
             {loading ? 'Extracting...' : 'Start Extraction'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

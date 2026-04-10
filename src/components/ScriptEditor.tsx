@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { v4 as uuidv4 } from 'uuid';
-import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '../hooks/useDebounce';
+
+// Local utility replacement for cn to avoid @/lib/utils dependencies
+const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
 
 export type BlockType = 'scene_heading' | 'action' | 'character' | 'dialogue' | 'parenthetical' | 'transition';
 
@@ -178,7 +180,7 @@ export function ScriptEditor({ blocks, onChange, sceneTitle }: ScriptEditorProps
     <div className="font-mono text-[12pt] leading-tight max-w-[850px] mx-auto bg-white dark:bg-[#1c1c1c] shadow-md dark:shadow-black/40 border border-black/5 dark:border-white/5 rounded-sm py-16 px-12 sm:px-20 min-h-[600px] mb-8 transition-all duration-300">
       {localBlocks.map((block, index) => (
         <div key={block.id} className="relative group">
-          <div className="absolute -left-12 top-1 opacity-0 group-hover:opacity-50 text-[10px] text-muted-foreground uppercase select-none">
+          <div className="absolute -left-12 top-1 opacity-0 group-hover:opacity-50 text-[10px] text-slate-400 uppercase select-none">
             {block.type.replace('_', ' ')}
           </div>
           <TextareaAutosize
