@@ -36,26 +36,26 @@ export function SceneOutlineItem({ scene, index, onUpdate, onDelete }: SceneOutl
   };
 
   return (
-    <div className="flex gap-4 items-start p-3 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg group transition-colors">
-      <div className="text-slate-500 font-mono text-sm pt-2 w-6 text-right shrink-0">
+    <div className="flex gap-4 items-start p-3 hover:bg-[#130f1a] rounded-lg group transition-colors border border-transparent hover:border-purple-900/30">
+      <div className="text-purple-500 font-mono text-sm pt-2 w-6 text-right shrink-0">
         {index + 1}.
       </div>
       <div className="flex-1 space-y-1">
         <input 
           value={title} 
           onChange={handleTitleChange}
-          className="font-bold border-transparent px-2 h-8 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent rounded w-full"
+          className="font-bold border-transparent px-2 h-8 focus:outline-none text-slate-200 bg-transparent rounded w-full placeholder:text-purple-700"
           placeholder="Scene Title"
         />
         <input 
           value={description} 
           onChange={handleDescChange}
           placeholder="One line description..."
-          className="text-sm text-slate-500 border-transparent px-2 h-7 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent rounded w-full"
+          className="text-sm text-purple-300/70 border-transparent px-2 h-7 focus:outline-none bg-transparent rounded w-full placeholder:text-purple-800/60"
         />
       </div>
       <button 
-        className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center rounded-md transition-colors h-8 w-8 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 shrink-0" 
+        className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center rounded-md transition-colors h-8 w-8 text-red-400 hover:bg-red-500/20 hover:text-red-400 shrink-0" 
         onClick={() => onDelete(scene.id)}
       >
         <Trash2 size={14} />
