@@ -8,9 +8,10 @@ interface ExtractElementsDialogProps {
   onOpenChange: (open: boolean) => void;
   projectId: string;
   scriptContent: string;
+  scenes?: { id: string; title: string }[];
 }
 
-export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptContent }: ExtractElementsDialogProps) {
+export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptContent, scenes = [] }: ExtractElementsDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -37,7 +38,6 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
     setSuccess(false);
 
     try {
-      // 1. FETCH EXISTING DATA FIRST (To prevent clones)
       const charsRef = collection(db, 'projects', projectId, 'characters');
       const prodRef = collection(db, 'projects', projectId, 'productionElements');
       
@@ -49,7 +49,6 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
       const existingChars = existingCharsSnap.docs.map(d => d.data().name?.toLowerCase().trim());
       const existingProd = existingProdSnap.docs.map(d => d.data().name?.toLowerCase().trim());
 
-      // 2. RUN AI EXTRACTION
       const response = await fetch('/api/extract-elements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,7 +61,6 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
         throw new Error(data.error || 'Failed to extract elements');
       }
 
-      // 3. SMART MERGE (Only add if it doesn't exist)
       let addedCount = 0;
 
       if (data.characters && Array.isArray(data.characters)) {
@@ -90,6 +88,17 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
         for (const el of data.productionElements) {
           const normalizedName = (el.name || '').toLowerCase().trim();
           if (!existingProd.includes(normalizedName) && normalizedName !== '') {
+            
+            // Link to the correct scene!
+            let matchedSceneId = '';
+            if (el.sceneHeading) {
+              const matched = scenes.find(s => 
+                s.title.toLowerCase().includes(el.sceneHeading.toLowerCase()) || 
+                el.sceneHeading.toLowerCase().includes(s.title.toLowerCase())
+              );
+              if (matched) matchedSceneId = matched.id;
+            }
+
             const newDocRef = doc(collection(db, 'projects', projectId, 'productionElements'));
             await setDoc(newDocRef, {
               id: newDocRef.id,
@@ -97,7 +106,7 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
               category: el.category || 'prop',
               name: el.name || 'Unknown',
               description: el.description || '',
-              sceneId: '', // Ready to be linked later
+              sceneId: matchedSceneId,
               tags: '',
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
@@ -137,7 +146,7 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
             Smart Extraction
           </h2>
           <p className="text-sm text-purple-200/60 mt-2">
-            Our AI will scan your script and add any <strong>new</strong> characters and elements without duplicating or deleting your existing work.
+            Our AI will scan your script and add any <strong>new</strong> characters and elements, automatically linking props to their scenes.
           </p>
         </div>
 
@@ -152,6 +161,7 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
                 type="text" 
                 autoComplete="off"
                 spellCheck="false"
+                style={{ WebkitTextSecurity: 'disc' }}
                 value={apiKey}
                 onChange={(e) => handleKeyChange(e.target.value)}
                 placeholder="AI_zaSy..."
@@ -164,7 +174,7 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
             <div className="text-center flex flex-col items-center py-6">
               <Loader2 size={40} className="mb-4 animate-spin text-emerald-500" />
               <p className="font-medium text-emerald-400">Analyzing Script...</p>
-              <p className="text-xs text-purple-300/50 mt-2">Extracting and merging elements...</p>
+              <p className="text-xs text-purple-300/50 mt-2">Extracting and linking elements...</p>
             </div>
           ) : success ? (
             <div className="text-center text-emerald-400 py-6">
