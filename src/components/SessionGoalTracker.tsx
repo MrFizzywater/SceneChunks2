@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Target, Trophy } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/popover';
+import { Input } from '@/components/input';
+import { Progress } from '@/components/progress';
 import { useAppStore } from '../store';
 import confetti from 'canvas-confetti';
 

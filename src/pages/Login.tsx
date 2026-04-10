@@ -1,6 +1,6 @@
 import { useAuth } from '../AuthContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/card';
 import { Navigate } from 'react-router-dom';
 
 export function Login() {

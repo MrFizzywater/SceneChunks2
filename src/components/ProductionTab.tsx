@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/button';
+import { Input } from '@/components/input';
+import { Textarea } from '@/components/textarea';
+import { Card, CardContent, CardHeader } from '@/components/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/tabs';
 import { Plus, Trash2, FileText, Printer } from 'lucide-react';
 import { useDebouncedCallback } from '../hooks/useDebounce';
 
