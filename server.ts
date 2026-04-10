@@ -16,17 +16,22 @@ async function startServer() {
 
   app.post("/api/analyze-script", async (req, res) => {
     try {
-      const { scriptContent } = req.body;
+      const { scriptContent, customApiKey } = req.body;
       
       if (!scriptContent) {
         return res.status(400).json({ error: "Script content is required" });
       }
 
-      if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ error: "Gemini API key is not configured" });
+      // BYOK Logic: Prioritize the user's key over the server's environment key
+      const apiKeyToUse = customApiKey && customApiKey.trim() !== '' 
+        ? customApiKey.trim() 
+        : process.env.GEMINI_API_KEY;
+
+      if (!apiKeyToUse) {
+        return res.status(500).json({ error: "Gemini API key is not configured or provided." });
       }
 
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: apiKeyToUse });
       
       const prompt = `You are an expert screenplay analyst and story consultant.
 Please analyze the following script and provide constructive, actionable feedback.
@@ -57,17 +62,21 @@ ${scriptContent}
 
   app.post("/api/import-script", async (req, res) => {
     try {
-      const { scriptContent } = req.body;
+      const { scriptContent, customApiKey } = req.body;
       
       if (!scriptContent) {
         return res.status(400).json({ error: "Script content is required" });
       }
 
-      if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ error: "Gemini API key is not configured" });
+      const apiKeyToUse = customApiKey && customApiKey.trim() !== '' 
+        ? customApiKey.trim() 
+        : process.env.GEMINI_API_KEY;
+
+      if (!apiKeyToUse) {
+        return res.status(500).json({ error: "Gemini API key is not configured or provided." });
       }
 
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: apiKeyToUse });
       
       const prompt = `You are an expert screenplay parser.
 Parse the following script text into a structured JSON format. Extract scenes and characters.
@@ -101,9 +110,7 @@ ${scriptContent}
         throw new Error("Failed to generate JSON from script");
       }
 
-      // Strip markdown code block formatting if present
       jsonText = jsonText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-
       const parsedData = JSON.parse(jsonText);
       res.json(parsedData);
     } catch (error: any) {
@@ -114,17 +121,21 @@ ${scriptContent}
 
   app.post("/api/extract-elements", async (req, res) => {
     try {
-      const { scriptContent } = req.body;
+      const { scriptContent, customApiKey } = req.body;
       
       if (!scriptContent) {
         return res.status(400).json({ error: "Script content is required" });
       }
 
-      if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ error: "Gemini API key is not configured" });
+      const apiKeyToUse = customApiKey && customApiKey.trim() !== '' 
+        ? customApiKey.trim() 
+        : process.env.GEMINI_API_KEY;
+
+      if (!apiKeyToUse) {
+        return res.status(500).json({ error: "Gemini API key is not configured or provided." });
       }
 
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: apiKeyToUse });
       
       const prompt = `You are an expert screenplay breakdown assistant.
 Parse the following script text and extract all characters and production elements.
@@ -152,9 +163,7 @@ ${scriptContent}
         throw new Error("Failed to generate JSON from script");
       }
 
-      // Strip markdown code block formatting if present
       jsonText = jsonText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-
       const parsedData = JSON.parse(jsonText);
       res.json(parsedData);
     } catch (error: any) {
@@ -163,7 +172,6 @@ ${scriptContent}
     }
   });
 
-  // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
