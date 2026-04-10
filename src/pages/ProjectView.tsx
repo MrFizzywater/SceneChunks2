@@ -198,6 +198,7 @@ export function ProjectView() {
             onOpenChange={setShowExtract}
             projectId={projectId}
             scriptContent={getFullScriptContent()}
+            scenes={scenes}
           />
         </>
       )}
@@ -207,7 +208,7 @@ export function ProjectView() {
           <div className="flex items-center gap-4">
             <button 
               onClick={() => navigate('/')} 
-              className="inline-flex items-center justify-center rounded-md h-10 w-10 transition-colors hover:bg-purple-900/30 text-purple-500 hover:text-emerald-400"
+              className="inline-flex items-center justify-center rounded-md h-10 w-10 transition-colors hover:bg-purple-900/30 text-purple-500 hover:text-emerald-400 active:scale-95"
             >
               <ArrowLeft size={18} />
             </button>
@@ -220,35 +221,35 @@ export function ProjectView() {
             <SessionGoalTracker scriptContent={getFullScriptContent()} />
             
             <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-purple-800/50 bg-[#130f1a] hover:bg-purple-900/30 text-purple-300 h-9 px-3"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-all bg-gradient-to-b from-[#1e1826] to-[#130f1a] border border-purple-900/50 shadow-md shadow-black/40 hover:shadow-purple-900/20 hover:border-purple-700 hover:text-emerald-400 text-purple-300 h-9 px-3 active:translate-y-[1px]"
               onClick={() => setShowImport(true)}
             >
               <Upload size={14} /> Import
             </button>
             
             <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-purple-800/50 bg-[#130f1a] hover:bg-purple-900/30 text-purple-300 h-9 px-3"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-all bg-gradient-to-b from-[#1e1826] to-[#130f1a] border border-purple-900/50 shadow-md shadow-black/40 hover:shadow-purple-900/20 hover:border-purple-700 hover:text-emerald-400 text-purple-300 h-9 px-3 active:translate-y-[1px]"
               onClick={handleExport}
             >
               <Download size={14} /> Export
             </button>
             
             <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-emerald-900/50 text-emerald-400 hover:bg-emerald-900/20 bg-transparent h-9 px-3"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-all bg-gradient-to-b from-[#0f1f1a] to-[#0a1410] border border-emerald-900/50 shadow-md shadow-black/40 hover:shadow-emerald-900/20 hover:border-emerald-700 text-emerald-400 h-9 px-3 active:translate-y-[1px]"
               onClick={() => setShowExtract(true)}
             >
               <Wand2 size={14} /> Extract Elements
             </button>
             
             <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-emerald-900/50 text-emerald-400 hover:bg-emerald-900/20 bg-transparent h-9 px-3"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-all bg-gradient-to-b from-[#0f1f1a] to-[#0a1410] border border-emerald-900/50 shadow-md shadow-black/40 hover:shadow-emerald-900/20 hover:border-emerald-700 text-emerald-400 h-9 px-3 active:translate-y-[1px]"
               onClick={() => setShowAnalysis(true)}
             >
               <Sparkles size={14} /> AI Analysis
             </button>
             
             <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-bold transition-colors bg-emerald-600 hover:bg-emerald-500 text-[#0a080d] h-9 px-4 shadow-lg shadow-emerald-900/20"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-bold transition-all bg-gradient-to-b from-emerald-500 to-emerald-700 border border-emerald-400 hover:from-emerald-400 hover:to-emerald-600 text-[#0a080d] h-9 px-4 shadow-lg shadow-emerald-900/20 active:translate-y-[1px]"
               onClick={() => {
                 setActiveTab('script');
                 setWriterMode(true);
