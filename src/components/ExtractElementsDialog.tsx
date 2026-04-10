@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Wand2, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Wand2, Loader2, Key, AlertTriangle } from 'lucide-react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
 
@@ -14,6 +14,17 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('gemini_custom_key');
+    if (savedKey) setApiKey(savedKey);
+  }, []);
+
+  const handleKeyChange = (val: string) => {
+    setApiKey(val);
+    localStorage.setItem('gemini_custom_key', val);
+  };
 
   const handleExtract = async () => {
     if (!scriptContent.trim()) {
@@ -29,7 +40,7 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
       const response = await fetch('/api/extract-elements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scriptContent }),
+        body: JSON.stringify({ scriptContent, customApiKey: apiKey }),
       });
 
       const data = await response.json();
@@ -78,7 +89,7 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
         setSuccess(false);
       }, 2000);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message + ". If you hit a quota error, provide your own Gemini API key.");
     } finally {
       setLoading(false);
     }
@@ -100,21 +111,38 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
           </p>
         </div>
 
-        <div className="p-6 py-8 flex flex-col items-center justify-center min-h-[200px]">
+        <div className="p-6 py-4 flex flex-col space-y-6">
+          {/* BYOK Settings Area */}
+          {!success && !loading && (
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+              <label className="text-sm font-medium flex items-center gap-2 mb-2 text-slate-700 dark:text-slate-300">
+                <Key size={14} className="text-slate-400" />
+                Your Gemini API Key (Optional)
+              </label>
+              <input 
+                type="password" 
+                value={apiKey}
+                onChange={(e) => handleKeyChange(e.target.value)}
+                placeholder="AI_zaSy..."
+                className="flex h-9 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+          )}
+
           {loading ? (
-            <div className="text-center flex flex-col items-center">
+            <div className="text-center flex flex-col items-center py-6">
               <Loader2 size={40} className="mb-4 animate-spin text-indigo-500" />
               <p className="font-medium">Analyzing Script...</p>
               <p className="text-xs text-slate-500 mt-2">Extracting characters, props, locations, and more.</p>
             </div>
           ) : success ? (
-            <div className="text-center text-green-600 dark:text-green-400">
+            <div className="text-center text-green-600 dark:text-green-400 py-6">
               <Wand2 size={40} className="mx-auto mb-4" />
               <p className="font-medium">Extraction Complete!</p>
               <p className="text-xs mt-2">Check your Characters and Production tabs.</p>
             </div>
           ) : (
-            <div className="text-center text-slate-500">
+            <div className="text-center text-slate-500 py-2">
               <Wand2 size={48} className="mx-auto mb-4 opacity-20" />
               <p>Ready to scan your script.</p>
               <p className="text-sm mt-2">This will add new entries without deleting existing ones.</p>
@@ -123,8 +151,11 @@ export function ExtractElementsDialog({ open, onOpenChange, projectId, scriptCon
         </div>
 
         {error && (
-          <div className="mx-6 mb-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
-            {error}
+          <div className="mx-6 mb-4 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 p-3 rounded-md text-sm border border-amber-200 dark:border-amber-800/50">
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+              <p>{error}</p>
+            </div>
           </div>
         )}
 
