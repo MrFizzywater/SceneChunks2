@@ -3,7 +3,6 @@ import TextareaAutosize from 'react-textarea-autosize';
 import { v4 as uuidv4 } from 'uuid';
 import { useDebouncedCallback } from '../hooks/useDebounce';
 
-// Local utility replacement for cn to avoid @/lib/utils dependencies
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
 
 export type BlockType = 'scene_heading' | 'action' | 'character' | 'dialogue' | 'parenthetical' | 'transition';
@@ -21,7 +20,6 @@ interface ScriptEditorProps {
 }
 
 export function ScriptEditor({ blocks, onChange, sceneTitle }: ScriptEditorProps) {
-  // Initialize with a scene heading if empty
   const initialBlocks = blocks && blocks.length > 0 
     ? blocks 
     : [{ id: uuidv4(), type: 'scene_heading' as BlockType, text: sceneTitle.toUpperCase() }];
@@ -30,7 +28,6 @@ export function ScriptEditor({ blocks, onChange, sceneTitle }: ScriptEditorProps
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const inputRefs = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
 
-  // Sync from props if needed (e.g. initial load)
   useEffect(() => {
     if (blocks && blocks.length > 0 && localBlocks.length === 1 && localBlocks[0].text === sceneTitle.toUpperCase()) {
       setLocalBlocks(blocks);
@@ -52,7 +49,6 @@ export function ScriptEditor({ blocks, onChange, sceneTitle }: ScriptEditorProps
     if (e.key === 'Enter') {
       e.preventDefault();
       
-      // Determine next block type
       let nextType: BlockType = 'action';
       if (block.type === 'scene_heading') nextType = 'action';
       else if (block.type === 'character') nextType = 'dialogue';
@@ -61,7 +57,6 @@ export function ScriptEditor({ blocks, onChange, sceneTitle }: ScriptEditorProps
       else if (block.type === 'action') nextType = 'action';
       else if (block.type === 'transition') nextType = 'scene_heading';
 
-      // If dialogue is empty and we press enter, switch to action
       if (block.type === 'dialogue' && block.text === '') {
         const newBlocks = [...localBlocks];
         newBlocks[index].type = 'action';
@@ -69,7 +64,6 @@ export function ScriptEditor({ blocks, onChange, sceneTitle }: ScriptEditorProps
         return;
       }
       
-      // If character is empty and we press enter, switch to action
       if (block.type === 'character' && block.text === '') {
         const newBlocks = [...localBlocks];
         newBlocks[index].type = 'action';
@@ -92,19 +86,17 @@ export function ScriptEditor({ blocks, onChange, sceneTitle }: ScriptEditorProps
       e.preventDefault();
       const newBlocks = [...localBlocks];
       
-      // Cycle types: action -> character -> scene_heading -> transition -> parenthetical -> action
       const cycle: Record<BlockType, BlockType> = {
         'action': 'character',
         'character': 'scene_heading',
         'scene_heading': 'transition',
         'transition': 'parenthetical',
         'parenthetical': 'action',
-        'dialogue': 'action' // shouldn't usually tab from dialogue, but just in case
+        'dialogue': 'action'
       };
       
       newBlocks[index].type = cycle[block.type];
       
-      // Auto-uppercase character and scene_heading
       if (newBlocks[index].type === 'character' || newBlocks[index].type === 'scene_heading' || newBlocks[index].type === 'transition') {
         newBlocks[index].text = newBlocks[index].text.toUpperCase();
       }
@@ -161,14 +153,12 @@ export function ScriptEditor({ blocks, onChange, sceneTitle }: ScriptEditorProps
     const newBlocks = [...localBlocks];
     const block = newBlocks[index];
     
-    // Auto-uppercase for certain types
     if (block.type === 'character' || block.type === 'scene_heading' || block.type === 'transition') {
       block.text = text.toUpperCase();
     } else {
       block.text = text;
     }
     
-    // Auto-detect parenthetical
     if (block.type === 'character' && text.startsWith('(')) {
       block.type = 'parenthetical';
     }
@@ -177,10 +167,10 @@ export function ScriptEditor({ blocks, onChange, sceneTitle }: ScriptEditorProps
   };
 
   return (
-    <div className="font-mono text-[12pt] leading-tight max-w-[850px] mx-auto bg-white dark:bg-[#1c1c1c] shadow-md dark:shadow-black/40 border border-black/5 dark:border-white/5 rounded-sm py-16 px-12 sm:px-20 min-h-[600px] mb-8 transition-all duration-300">
+    <div className="font-mono text-[12pt] leading-tight max-w-[850px] mx-auto bg-[#130f1a] text-slate-200 shadow-2xl shadow-black/60 border border-purple-900/30 rounded-sm py-16 px-12 sm:px-20 min-h-[600px] mb-8 transition-all duration-300">
       {localBlocks.map((block, index) => (
         <div key={block.id} className="relative group">
-          <div className="absolute -left-12 top-1 opacity-0 group-hover:opacity-50 text-[10px] text-slate-400 uppercase select-none">
+          <div className="absolute -left-12 top-1 opacity-0 group-hover:opacity-50 text-[10px] text-purple-600 uppercase select-none">
             {block.type.replace('_', ' ')}
           </div>
           <TextareaAutosize
@@ -191,13 +181,13 @@ export function ScriptEditor({ blocks, onChange, sceneTitle }: ScriptEditorProps
             onFocus={() => setFocusedId(block.id)}
             placeholder={block.type === 'scene_heading' ? 'INT. LOCATION - DAY' : ''}
             className={cn(
-              "w-full resize-none bg-transparent outline-none overflow-hidden",
-              block.type === 'scene_heading' && "uppercase font-bold mt-8 mb-4",
-              block.type === 'action' && "mt-4 mb-4",
-              block.type === 'character' && "uppercase mt-6 mb-0 ml-[35%] w-[40%]",
-              block.type === 'dialogue' && "mt-0 mb-4 ml-[20%] w-[60%]",
-              block.type === 'parenthetical' && "mt-0 mb-0 ml-[28%] w-[44%]",
-              block.type === 'transition' && "uppercase mt-6 mb-6 text-right"
+              "w-full resize-none bg-transparent outline-none overflow-hidden placeholder:text-purple-900/50",
+              block.type === 'scene_heading' && "uppercase font-bold mt-8 mb-4 text-emerald-400",
+              block.type === 'action' && "mt-4 mb-4 text-slate-300",
+              block.type === 'character' && "uppercase mt-6 mb-0 ml-[35%] w-[40%] text-purple-300 font-bold",
+              block.type === 'dialogue' && "mt-0 mb-4 ml-[20%] w-[60%] text-slate-200",
+              block.type === 'parenthetical' && "mt-0 mb-0 ml-[28%] w-[44%] text-purple-400/80 italic",
+              block.type === 'transition' && "uppercase mt-6 mb-6 text-right text-purple-500 font-bold"
             )}
           />
         </div>
