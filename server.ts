@@ -142,7 +142,7 @@ Parse the following script text and extract all characters and production elemen
 Return ONLY valid JSON matching this exact schema:
 {
   "characters": [{ "name": "string", "role": "string", "description": "string" }],
-  "productionElements": [{ "category": "crew" | "prop" | "location" | "music" | "sfx" | "vfx", "name": "string", "description": "string" }]
+  "productionElements": [{ "category": "crew" | "prop" | "location" | "music" | "sfx" | "vfx", "name": "string", "description": "string", "sceneHeading": "string (the exact scene heading where this appears)" }]
 }
 
 Script Content:
