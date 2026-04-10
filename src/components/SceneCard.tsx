@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardContent } from '@/components/card';
+import { Input } from '@/components/input';
+import { Textarea } from '@/components/textarea';
+import { Button } from '@/components/button';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { useDebouncedCallback } from '../hooks/useDebounce';
 

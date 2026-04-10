@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/components/input';
+import { Button } from '@/components/button';
 import { Trash2 } from 'lucide-react';
 import { useDebouncedCallback } from '../hooks/useDebounce';
 
