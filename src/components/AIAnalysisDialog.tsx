@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Sparkles, Loader2, Key, AlertTriangle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface AIAnalysisDialogProps {
@@ -12,6 +12,17 @@ export function AIAnalysisDialog({ open, onOpenChange, scriptContent }: AIAnalys
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState('');
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('gemini_custom_key');
+    if (savedKey) setApiKey(savedKey);
+  }, []);
+
+  const handleKeyChange = (val: string) => {
+    setApiKey(val);
+    localStorage.setItem('gemini_custom_key', val);
+  };
 
   const handleAnalyze = async () => {
     if (!scriptContent.trim()) {
@@ -27,7 +38,7 @@ export function AIAnalysisDialog({ open, onOpenChange, scriptContent }: AIAnalys
       const response = await fetch('/api/analyze-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scriptContent }),
+        body: JSON.stringify({ scriptContent, customApiKey: apiKey }),
       });
 
       const data = await response.json();
@@ -38,7 +49,7 @@ export function AIAnalysisDialog({ open, onOpenChange, scriptContent }: AIAnalys
 
       setFeedback(data.feedback);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message + ". If you hit a quota error, provide your own Gemini API key.");
     } finally {
       setLoading(false);
     }
@@ -60,7 +71,28 @@ export function AIAnalysisDialog({ open, onOpenChange, scriptContent }: AIAnalys
           </p>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          
+          {/* BYOK Settings Area */}
+          {!feedback && !loading && (
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+              <label className="text-sm font-medium flex items-center gap-2 mb-2 text-slate-700 dark:text-slate-300">
+                <Key size={14} className="text-slate-400" />
+                Your Gemini API Key (Optional)
+              </label>
+              <input 
+                type="password" 
+                value={apiKey}
+                onChange={(e) => handleKeyChange(e.target.value)}
+                placeholder="AI_zaSy..."
+                className="flex h-9 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              <p className="text-[10px] text-slate-500 mt-2">
+                If the built-in AI quota is exceeded, add your own free Gemini key here. It is saved locally in your browser.
+              </p>
+            </div>
+          )}
+
           {!feedback && !loading && !error && (
             <div className="text-center py-12 text-slate-500">
               <Sparkles size={48} className="mx-auto mb-4 opacity-20" />
@@ -78,9 +110,11 @@ export function AIAnalysisDialog({ open, onOpenChange, scriptContent }: AIAnalys
           )}
 
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-md">
-              <p className="font-bold">Error</p>
-              <p>{error}</p>
+            <div className="mx-0 mb-4 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 p-4 rounded-md text-sm border border-amber-200 dark:border-amber-800/50">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                <p className="font-medium">{error}</p>
+              </div>
             </div>
           )}
 
