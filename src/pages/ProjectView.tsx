@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, getDoc, collection, query, orderBy, onSnapshot, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { ArrowLeft, Plus, Download, Sparkles, Upload, PanelRightClose, PanelRightOpen, Maximize2, Minimize2, Wand2, FileText, LayoutGrid, List, Users, Film } from 'lucide-react';
+import { ArrowLeft, Plus, Download, Sparkles, Upload, PanelRightClose, PanelRightOpen, Maximize2, Minimize2, Wand2, FileText, LayoutGrid, List, Users, Film, Sun, Moon } from 'lucide-react';
 import { SceneCard } from '../components/SceneCard';
 import { SceneOutlineItem } from '../components/SceneOutlineItem';
 import { ScriptEditor, ScriptBlock } from '../components/ScriptEditor';
@@ -45,6 +45,7 @@ export function ProjectView() {
   const [showImport, setShowImport] = useState(false);
   const [showExtract, setShowExtract] = useState(false);
   const [writerMode, setWriterMode] = useState(false);
+  const [isLightPage, setIsLightPage] = useState(true); // Toggles paper color
   const [visibleSceneCards, setVisibleSceneCards] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -178,7 +179,6 @@ export function ProjectView() {
     return <div className="flex h-screen items-center justify-center bg-[#0a080d] text-purple-500">Project not found</div>;
   }
 
-  // Define our tabs with icons
   const tabNavigation = [
     { id: 'script', label: 'Script', icon: FileText },
     { id: 'cards', label: 'Cards', icon: LayoutGrid },
@@ -188,7 +188,7 @@ export function ProjectView() {
   ];
 
   return (
-    <div className={`min-h-screen flex flex-col transition-all duration-500 ${writerMode ? 'bg-[#e5e5e5]' : 'bg-[#0a080d] text-slate-200'}`}>
+    <div className="min-h-screen flex flex-col transition-all duration-500 bg-[#0a080d] text-slate-200">
       <AIAnalysisDialog 
         open={showAnalysis} 
         onOpenChange={setShowAnalysis} 
@@ -275,7 +275,7 @@ export function ProjectView() {
       {writerMode && (
         <div className="fixed top-4 right-4 z-50">
           <button 
-            className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-slate-300 shadow-lg shadow-black/10 bg-white/90 backdrop-blur-sm hover:bg-slate-100 text-slate-700 hover:text-black h-9 px-4 active:scale-95"
+            className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-purple-700/50 shadow-lg shadow-black/40 bg-[#130f1a]/80 backdrop-blur-sm hover:bg-purple-900/50 text-purple-300 hover:text-emerald-400 h-9 px-4 active:scale-95"
             onClick={() => setWriterMode(false)}
           >
             <Minimize2 size={14} /> Exit Writer's Mode
@@ -287,7 +287,7 @@ export function ProjectView() {
         <div className="flex-1 flex flex-col h-full max-w-7xl mx-auto w-full">
           
           {!writerMode && (
-            <div className="grid w-full grid-cols-5 mb-6 shrink-0 bg-[#0a080d] border border-purple-900/40 p-1.5 rounded-xl shadow-inner">
+            <div className="grid w-full grid-cols-5 mb-6 shrink-0 bg-[#130f1a] border border-purple-900/40 p-1.5 rounded-xl shadow-inner">
               {tabNavigation.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -372,6 +372,18 @@ export function ProjectView() {
               <div className="h-full m-0 flex flex-col">
                 <div className="flex-1 overflow-y-auto">
                   <div className={`mx-auto transition-all duration-500 ${writerMode ? 'max-w-4xl' : 'max-w-6xl'}`}>
+                    
+                    {/* The Page Color Toggle */}
+                    <div className="flex justify-end mb-4 px-4 lg:px-0">
+                      <button
+                        onClick={() => setIsLightPage(!isLightPage)}
+                        className="inline-flex items-center gap-2 rounded-md text-xs font-medium bg-[#130f1a] border border-purple-900/50 text-purple-400 hover:text-emerald-400 hover:border-emerald-900/50 px-3 py-1.5 transition-colors shadow-sm"
+                      >
+                        {isLightPage ? <Moon size={14} /> : <Sun size={14} />}
+                        {isLightPage ? "Switch to Dark Page" : "Switch to Light Page"}
+                      </button>
+                    </div>
+
                     {scenes.map((scene) => (
                       <div key={scene.id} className={`flex gap-6 relative group mb-8 sm:mb-12 ${writerMode ? 'justify-center' : ''}`}>
                         <div className="flex-1">
@@ -379,13 +391,13 @@ export function ProjectView() {
                             sceneTitle={scene.title}
                             blocks={scene.scriptBlocks || []}
                             onChange={(blocks) => handleUpdateScene(scene.id, { scriptBlocks: blocks })}
-                            writerMode={writerMode}
+                            isLightPage={isLightPage}
                           />
                         </div>
                         
                         {/* Attached Scene Card - Hidden in Writer's Mode */}
                         {!writerMode && visibleSceneCards.has(scene.id) ? (
-                          <div className="w-72 shrink-0 sticky top-4 self-start hidden lg:block">
+                          <div className="w-72 shrink-0 sticky top-4 self-start hidden lg:block z-10">
                             <div className="relative">
                               <SceneCard 
                                 scene={scene} 
@@ -401,7 +413,7 @@ export function ProjectView() {
                             </div>
                           </div>
                         ) : !writerMode ? (
-                          <div className="absolute -right-12 top-12 opacity-0 group-hover:opacity-100 transition-opacity hidden lg:block">
+                          <div className="absolute -right-12 top-12 opacity-0 group-hover:opacity-100 transition-opacity hidden lg:block z-10">
                             <button 
                               className="inline-flex items-center justify-center rounded-md transition-colors h-8 w-8 shadow-sm bg-[#130f1a] border border-purple-900/30 hover:bg-emerald-900/30 hover:border-emerald-500/50 text-purple-400 hover:text-emerald-400"
                               onClick={() => toggleSceneCard(scene.id)}
