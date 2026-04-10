@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Input } from '@/components/input';
-import { Button } from '@/components/button';
 import { Trash2 } from 'lucide-react';
 import { useDebouncedCallback } from '../hooks/useDebounce';
 
@@ -38,27 +36,30 @@ export function SceneOutlineItem({ scene, index, onUpdate, onDelete }: SceneOutl
   };
 
   return (
-    <div className="flex gap-4 items-start p-3 hover:bg-muted/50 rounded-lg group">
-      <div className="text-muted-foreground font-mono text-sm pt-2 w-6 text-right shrink-0">
+    <div className="flex gap-4 items-start p-3 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg group transition-colors">
+      <div className="text-slate-500 font-mono text-sm pt-2 w-6 text-right shrink-0">
         {index + 1}.
       </div>
       <div className="flex-1 space-y-1">
-        <Input 
+        <input 
           value={title} 
           onChange={handleTitleChange}
-          className="font-bold border-transparent px-2 h-8 focus-visible:ring-1 bg-transparent"
+          className="font-bold border-transparent px-2 h-8 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent rounded w-full"
           placeholder="Scene Title"
         />
-        <Input 
+        <input 
           value={description} 
           onChange={handleDescChange}
           placeholder="One line description..."
-          className="text-sm text-muted-foreground border-transparent px-2 h-7 focus-visible:ring-1 bg-transparent"
+          className="text-sm text-slate-500 border-transparent px-2 h-7 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent rounded w-full"
         />
       </div>
-      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-8 w-8 text-destructive shrink-0" onClick={() => onDelete(scene.id)}>
+      <button 
+        className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center rounded-md transition-colors h-8 w-8 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 shrink-0" 
+        onClick={() => onDelete(scene.id)}
+      >
         <Trash2 size={14} />
-      </Button>
+      </button>
     </div>
   );
 }
