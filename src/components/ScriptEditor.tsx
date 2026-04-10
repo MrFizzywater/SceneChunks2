@@ -17,10 +17,10 @@ interface ScriptEditorProps {
   blocks: ScriptBlock[];
   onChange: (blocks: ScriptBlock[]) => void;
   sceneTitle: string;
-  writerMode?: boolean;
+  isLightPage?: boolean;
 }
 
-export function ScriptEditor({ blocks, onChange, sceneTitle, writerMode = false }: ScriptEditorProps) {
+export function ScriptEditor({ blocks, onChange, sceneTitle, isLightPage = true }: ScriptEditorProps) {
   const initialBlocks = blocks && blocks.length > 0 
     ? blocks 
     : [{ id: uuidv4(), type: 'scene_heading' as BlockType, text: sceneTitle.toUpperCase() }];
@@ -50,6 +50,26 @@ export function ScriptEditor({ blocks, onChange, sceneTitle, writerMode = false 
     if (e.key === 'Enter') {
       e.preventDefault();
       
+      // Determine exactly where the cursor is to slice the text properly
+      const cursorStart = e.currentTarget.selectionStart;
+      const textBefore = block.text.slice(0, cursorStart);
+      const textAfter = block.text.slice(cursorStart);
+      
+      // Prevent spawning an endless line of characters or dialogues if empty
+      if (block.type === 'dialogue' && block.text === '') {
+        const newBlocks = [...localBlocks];
+        newBlocks[index].type = 'action';
+        updateBlocks(newBlocks);
+        return;
+      }
+      if (block.type === 'character' && block.text === '') {
+        const newBlocks = [...localBlocks];
+        newBlocks[index].type = 'action';
+        updateBlocks(newBlocks);
+        return;
+      }
+
+      // Determine the type of the newly spawned block
       let nextType: BlockType = 'action';
       if (block.type === 'scene_heading') nextType = 'action';
       else if (block.type === 'character') nextType = 'dialogue';
@@ -58,30 +78,27 @@ export function ScriptEditor({ blocks, onChange, sceneTitle, writerMode = false 
       else if (block.type === 'action') nextType = 'action';
       else if (block.type === 'transition') nextType = 'scene_heading';
 
-      if (block.type === 'dialogue' && block.text === '') {
-        const newBlocks = [...localBlocks];
-        newBlocks[index].type = 'action';
-        updateBlocks(newBlocks);
-        return;
-      }
+      // Assemble the new timeline
+      const newBlock: ScriptBlock = { id: uuidv4(), type: nextType, text: textAfter };
+      const newBlocks = [...localBlocks];
       
-      if (block.type === 'character' && block.text === '') {
-        const newBlocks = [...localBlocks];
-        newBlocks[index].type = 'action';
-        updateBlocks(newBlocks);
-        return;
-      }
-
-      const newBlock: ScriptBlock = { id: uuidv4(), type: nextType, text: '' };
-      const newBlocks = [
-        ...localBlocks.slice(0, index + 1),
-        newBlock,
-        ...localBlocks.slice(index + 1)
-      ];
+      // Update current block to cut off the text that moved to the new block
+      newBlocks[index] = { ...block, text: textBefore };
+      
+      // Splice the new block into the array directly underneath it
+      newBlocks.splice(index + 1, 0, newBlock);
       
       updateBlocks(newBlocks);
       setFocusedId(newBlock.id);
-      setTimeout(() => inputRefs.current[newBlock.id]?.focus(), 0);
+      
+      // Focus the new block and put cursor at the very beginning
+      setTimeout(() => {
+        const el = inputRefs.current[newBlock.id];
+        if (el) {
+          el.focus();
+          el.setSelectionRange(0, 0);
+        }
+      }, 0);
     } 
     else if (e.key === 'Tab') {
       e.preventDefault();
@@ -169,16 +186,16 @@ export function ScriptEditor({ blocks, onChange, sceneTitle, writerMode = false 
 
   return (
     <div className={cn(
-      "font-mono text-[12pt] leading-tight max-w-[850px] mx-auto rounded-sm py-12 px-8 sm:py-16 sm:px-20 min-h-[600px] mb-8 transition-all duration-300",
-      writerMode 
-        ? "bg-white text-black shadow-xl shadow-black/10 border border-slate-200" 
+      "font-mono text-[12pt] leading-tight max-w-[850px] mx-auto rounded-sm py-12 px-8 sm:py-16 sm:px-20 min-h-[600px] mb-8 transition-all duration-300 relative",
+      isLightPage 
+        ? "bg-[#fdfcfc] text-black shadow-xl shadow-black/40 border border-slate-300" 
         : "bg-[#130f1a] text-slate-200 shadow-2xl shadow-black/60 border border-purple-900/30"
     )}>
       {localBlocks.map((block, index) => (
         <div key={block.id} className="relative group">
           <div className={cn(
-            "absolute -left-10 sm:-left-12 top-1 opacity-0 group-hover:opacity-50 text-[9px] sm:text-[10px] uppercase select-none",
-            writerMode ? "text-slate-400" : "text-purple-600"
+            "absolute -left-10 sm:-left-12 top-1 opacity-0 group-hover:opacity-50 text-[9px] sm:text-[10px] uppercase select-none transition-opacity",
+            isLightPage ? "text-slate-400" : "text-purple-600"
           )}>
             {block.type.replace('_', ' ')}
           </div>
@@ -191,32 +208,32 @@ export function ScriptEditor({ blocks, onChange, sceneTitle, writerMode = false 
             placeholder={block.type === 'scene_heading' ? 'INT. LOCATION - DAY' : ''}
             className={cn(
               "w-full resize-none bg-transparent outline-none overflow-hidden",
-              writerMode ? "placeholder:text-slate-300" : "placeholder:text-purple-900/50",
+              isLightPage ? "placeholder:text-slate-300" : "placeholder:text-purple-900/50",
               
               // Scene Heading
               block.type === 'scene_heading' && "uppercase font-bold mt-8 mb-4",
-              block.type === 'scene_heading' && !writerMode && "text-emerald-400",
+              block.type === 'scene_heading' && !isLightPage && "text-emerald-400",
               
               // Action
               block.type === 'action' && "mt-4 mb-4",
-              block.type === 'action' && !writerMode && "text-slate-300",
+              block.type === 'action' && !isLightPage && "text-slate-300",
               
               // Character
               block.type === 'character' && "uppercase mt-6 mb-0 ml-[25%] sm:ml-[35%] w-[60%] sm:w-[40%]",
-              block.type === 'character' && writerMode && "font-bold",
-              block.type === 'character' && !writerMode && "text-purple-300 font-bold",
+              block.type === 'character' && isLightPage && "font-bold",
+              block.type === 'character' && !isLightPage && "text-purple-300 font-bold",
               
               // Dialogue
               block.type === 'dialogue' && "mt-0 mb-4 ml-[10%] sm:ml-[20%] w-[80%] sm:w-[60%]",
-              block.type === 'dialogue' && !writerMode && "text-slate-200",
+              block.type === 'dialogue' && !isLightPage && "text-slate-200",
               
               // Parenthetical
               block.type === 'parenthetical' && "mt-0 mb-0 ml-[18%] sm:ml-[28%] w-[64%] sm:w-[44%] italic",
-              block.type === 'parenthetical' && !writerMode && "text-purple-400/80",
+              block.type === 'parenthetical' && !isLightPage && "text-purple-400/80",
               
               // Transition
               block.type === 'transition' && "uppercase mt-6 mb-6 text-right font-bold",
-              block.type === 'transition' && !writerMode && "text-purple-500"
+              block.type === 'transition' && !isLightPage && "text-purple-500"
             )}
           />
         </div>
