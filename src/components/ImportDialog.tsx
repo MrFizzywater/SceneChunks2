@@ -191,31 +191,32 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
 
         <div className="p-6 overflow-y-auto">
           {loading ? (
-            <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800/30">
-              <Loader2 size={40} className="mb-4 animate-spin text-indigo-500" />
-              <p className="font-medium">Parsing Script...</p>
-              <p className="text-xs text-slate-500 mt-2 text-center px-4">
+            <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-purple-900/50 rounded-lg bg-[#130f1a]/50">
+              <Loader2 size={40} className="mb-4 animate-spin text-emerald-500" />
+              <p className="font-medium text-emerald-400">Parsing Script...</p>
+              <p className="text-xs text-purple-300/50 mt-2 text-center px-4">
                 This may take a minute. If using the basic fallback, this will be incredibly fast (but a bit messy).
               </p>
             </div>
           ) : (
             <div className="w-full space-y-6">
               {/* BYOK Settings Area */}
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-                <label className="text-sm font-medium flex items-center gap-2 mb-2 text-slate-700 dark:text-slate-300">
-                  <Key size={14} className="text-slate-400" />
+              <div className="bg-purple-950/20 p-4 rounded-lg border border-purple-900/30">
+                <label className="text-sm font-medium flex items-center gap-2 mb-2 text-purple-200">
+                  <Key size={14} className="text-emerald-500" />
                   Your Gemini API Key (Optional)
                 </label>
                 <input 
                   type="text" 
                   autoComplete="off"
                   spellCheck="false"
+                  style={{ WebkitTextSecurity: 'disc' }}
                   value={apiKey}
                   onChange={(e) => handleKeyChange(e.target.value)}
                   placeholder="AI_zaSy..."
-                  className="flex h-9 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="flex h-9 w-full rounded-md border border-purple-800/50 bg-[#0a080d] px-3 py-1 text-sm text-slate-200 shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
-                <p className="text-[10px] text-slate-500 mt-2">
+                <p className="text-[10px] text-purple-300/50 mt-2">
                   If the built-in AI quota is exceeded, add your own free Gemini key here. It is saved locally in your browser.
                 </p>
               </div>
