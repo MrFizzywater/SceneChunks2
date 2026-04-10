@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, getDoc, collection, query, orderBy, onSnapshot, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { ArrowLeft, Plus, Settings, Download, Sparkles, Upload, PanelRightClose, PanelRightOpen, Maximize2, Minimize2, Wand2 } from 'lucide-react';
+import { ArrowLeft, Plus, Download, Sparkles, Upload, PanelRightClose, PanelRightOpen, Maximize2, Minimize2, Wand2 } from 'lucide-react';
 import { SceneCard } from '../components/SceneCard';
 import { SceneOutlineItem } from '../components/SceneOutlineItem';
 import { ScriptEditor, ScriptBlock } from '../components/ScriptEditor';
@@ -171,15 +171,15 @@ export function ProjectView() {
   };
 
   if (loading) {
-    return <div className="flex h-screen items-center justify-center text-slate-500">Loading project...</div>;
+    return <div className="flex h-screen items-center justify-center bg-[#0a080d] text-purple-500">Loading project...</div>;
   }
 
   if (!project) {
-    return <div className="flex h-screen items-center justify-center text-slate-500">Project not found</div>;
+    return <div className="flex h-screen items-center justify-center bg-[#0a080d] text-purple-500">Project not found</div>;
   }
 
   return (
-    <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col transition-all duration-500 ${writerMode ? 'bg-[#F9F7F1] dark:bg-[#1A1A1A]' : ''}`}>
+    <div className={`min-h-screen bg-[#0a080d] text-slate-200 flex flex-col transition-all duration-500 ${writerMode ? 'bg-[#050408]' : ''}`}>
       <AIAnalysisDialog 
         open={showAnalysis} 
         onOpenChange={setShowAnalysis} 
@@ -203,52 +203,52 @@ export function ProjectView() {
       )}
       
       {!writerMode && (
-        <header className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <header className="border-b border-purple-900/30 bg-[#130f1a]/80 backdrop-blur-md px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-lg shadow-black/40">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => navigate('/')} 
-              className="inline-flex items-center justify-center rounded-md h-10 w-10 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400"
+              className="inline-flex items-center justify-center rounded-md h-10 w-10 transition-colors hover:bg-purple-900/30 text-purple-500 hover:text-emerald-400"
             >
               <ArrowLeft size={18} />
             </button>
             <div>
-              <h1 className="text-lg font-bold tracking-tight leading-none font-serif text-slate-900 dark:text-slate-50">{project.title}</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">{scenes.length} scenes</p>
+              <h1 className="text-lg font-bold tracking-tight leading-none font-serif text-slate-100">{project.title}</h1>
+              <p className="text-xs text-purple-400 mt-1 font-medium">{scenes.length} scenes</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <SessionGoalTracker scriptContent={getFullScriptContent()} />
             
             <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-slate-200 dark:border-slate-800 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 h-9 px-3"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-purple-800/50 bg-[#130f1a] hover:bg-purple-900/30 text-purple-300 h-9 px-3"
               onClick={() => setShowImport(true)}
             >
               <Upload size={14} /> Import
             </button>
             
             <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-slate-200 dark:border-slate-800 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 h-9 px-3"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-purple-800/50 bg-[#130f1a] hover:bg-purple-900/30 text-purple-300 h-9 px-3"
               onClick={handleExport}
             >
               <Download size={14} /> Export
             </button>
             
             <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-indigo-200 dark:border-indigo-900 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 bg-transparent h-9 px-3"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-emerald-900/50 text-emerald-400 hover:bg-emerald-900/20 bg-transparent h-9 px-3"
               onClick={() => setShowExtract(true)}
             >
               <Wand2 size={14} /> Extract Elements
             </button>
             
             <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-indigo-200 dark:border-indigo-900 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 bg-transparent h-9 px-3"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-emerald-900/50 text-emerald-400 hover:bg-emerald-900/20 bg-transparent h-9 px-3"
               onClick={() => setShowAnalysis(true)}
             >
               <Sparkles size={14} /> AI Analysis
             </button>
             
             <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-900 h-9 px-3"
+              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-bold transition-colors bg-emerald-600 hover:bg-emerald-500 text-[#0a080d] h-9 px-4 shadow-lg shadow-emerald-900/20"
               onClick={() => {
                 setActiveTab('script');
                 setWriterMode(true);
@@ -263,7 +263,7 @@ export function ProjectView() {
       {writerMode && (
         <div className="fixed top-4 right-4 z-50">
           <button 
-            className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-slate-200 dark:border-slate-700 shadow-md bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 h-9 px-3"
+            className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-purple-700/50 shadow-lg shadow-black/40 bg-[#130f1a]/80 backdrop-blur-sm hover:bg-purple-900/50 text-purple-300 hover:text-emerald-400 h-9 px-3"
             onClick={() => setWriterMode(false)}
           >
             <Minimize2 size={14} /> Exit Writer's Mode
@@ -274,15 +274,15 @@ export function ProjectView() {
       <main className={`flex-1 flex flex-col overflow-hidden ${writerMode ? 'p-0 h-screen' : 'p-6 h-[calc(100vh-65px)]'}`}>
         <div className="flex-1 flex flex-col h-full">
           {!writerMode && (
-            <div className="grid w-full max-w-3xl grid-cols-5 mb-6 shrink-0 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg">
+            <div className="grid w-full max-w-3xl grid-cols-5 mb-6 shrink-0 bg-[#130f1a] border border-purple-900/30 p-1 rounded-lg">
               {['script', 'cards', 'outline', 'characters', 'production'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-bold transition-all ${
                     activeTab === tab 
-                      ? 'bg-white dark:bg-slate-900 text-slate-950 dark:text-slate-50 shadow-sm' 
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                      ? 'bg-emerald-600 text-[#0a080d] shadow-sm' 
+                      : 'text-purple-400 hover:text-emerald-400 hover:bg-purple-900/20'
                   }`}
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -306,7 +306,7 @@ export function ProjectView() {
                   ))}
                   
                   <button 
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors h-64 border border-dashed border-slate-300 dark:border-slate-700 flex flex-col gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-blue-500/50 bg-slate-50 dark:bg-slate-900/50"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-colors h-[22rem] border-2 border-dashed border-purple-900/50 flex flex-col gap-2 text-purple-500 hover:text-emerald-400 hover:border-emerald-500/50 bg-[#130f1a]/30"
                     onClick={handleAddScene}
                   >
                     <Plus size={24} />
@@ -329,7 +329,7 @@ export function ProjectView() {
                     />
                   ))}
                   <button 
-                    className="inline-flex items-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 w-full justify-start mt-4 h-10 px-4 py-2" 
+                    className="inline-flex items-center rounded-md text-sm font-medium transition-colors hover:bg-purple-900/30 text-purple-400 hover:text-emerald-400 w-full justify-start mt-4 h-10 px-4 py-2 border border-transparent hover:border-purple-800/30" 
                     onClick={handleAddScene}
                   >
                     <Plus size={16} className="mr-2" />
@@ -375,7 +375,7 @@ export function ProjectView() {
                                 onDelete={handleDeleteScene} 
                               />
                               <button 
-                                className="inline-flex items-center justify-center rounded-full text-sm font-medium transition-colors bg-slate-100 text-slate-900 hover:bg-red-500 hover:text-white absolute -top-3 -right-3 h-8 w-8 shadow-md z-20"
+                                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-[#0a080d]/80 backdrop-blur-sm text-emerald-400 hover:bg-emerald-500 hover:text-[#0a080d] absolute -top-3 -right-3 h-8 w-8 shadow-lg shadow-black/50 z-20"
                                 onClick={() => toggleSceneCard(scene.id)}
                               >
                                 <PanelRightClose size={14} />
@@ -385,7 +385,7 @@ export function ProjectView() {
                         ) : !writerMode ? (
                           <div className="absolute -right-12 top-12 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button 
-                              className="inline-flex items-center justify-center rounded-full transition-colors h-8 w-8 shadow-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+                              className="inline-flex items-center justify-center rounded-md transition-colors h-8 w-8 shadow-sm bg-[#130f1a] border border-purple-900/30 hover:bg-purple-900/50 hover:border-emerald-500/50 text-purple-400 hover:text-emerald-400"
                               onClick={() => toggleSceneCard(scene.id)}
                               title="Show Scene Card"
                             >
@@ -396,7 +396,7 @@ export function ProjectView() {
                       </div>
                     ))}
                     <button 
-                      className="inline-flex items-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 w-full justify-start mt-8 h-10 px-4 py-2" 
+                      className="inline-flex items-center rounded-md text-sm font-medium transition-colors hover:bg-purple-900/20 text-purple-400 hover:text-emerald-400 w-full justify-start mt-8 h-10 px-4 py-2 border border-transparent hover:border-purple-800/30" 
                       onClick={handleAddScene}
                     >
                       <Plus size={16} className="mr-2" />
