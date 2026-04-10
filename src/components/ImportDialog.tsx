@@ -10,6 +10,37 @@ interface ImportDialogProps {
   onSuccess: () => void;
 }
 
+// --- LEGACY PARSER ENGINE ---
+function isAllCaps(text: string) {
+  if (!text) return false;
+  const upper = text.toUpperCase();
+  return text === upper && text.toLowerCase() !== upper;
+}
+
+function isLikelyScene(line: string) {
+  const t = line.trim().toUpperCase();
+  return ["INT.", "EXT.", "INT/EXT.", "I/E.", "EST.", "INT/EXT"].some(s => t.startsWith(s));
+}
+
+function isLikelyTransition(line: string) {
+  const t = line.trim().toUpperCase();
+  if (!isAllCaps(t)) return false;
+  if (t.endsWith("TO:")) return true;
+  const known = ["FADE IN", "FADE OUT", "BLACK OUT", "DISSOLVE", "SMASH CUT"];
+  return known.some(k => t.includes(k));
+}
+
+function isLikelyCharacter(line: string) {
+  const t = line.trim();
+  if (!t || !isAllCaps(t) || t.length > 50 || isLikelyScene(t) || isLikelyTransition(t)) return false;
+  return true;
+}
+
+function isLikelyParenthetical(line: string) {
+  const t = line.trim();
+  return t.startsWith("(") && t.endsWith(")");
+}
+
 export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: ImportDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,26 +68,94 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
     localStorage.setItem('gemini_custom_key', val);
   };
 
+  // Advanced Regex-Free Fallback Parser
   const fallbackManualParse = (text: string) => {
-    const normalizedText = '\n' + text; 
-    const rawScenes = normalizedText.split(/\n(?=INT\.|EXT\.|INT\/EXT|I\/E\.)/i);
-    const parsedScenes = [];
-    
-    for (const rawScene of rawScenes) {
-      if (!rawScene.trim()) continue;
-      const lines = rawScene.trim().split('\n');
-      const title = lines[0].trim() || 'Untitled Scene';
-      const content = lines.slice(1).join('\n').trim();
-      parsedScenes.push({
-        title: title.length > 60 ? title.substring(0, 60) + '...' : title,
-        description: 'Imported via manual fallback. Formatting required.',
-        scriptBlocks: [
-          { id: crypto.randomUUID(), type: 'scene_heading', text: title },
-          { id: crypto.randomUUID(), type: 'action', text: content }
-        ]
+    const lines = text.split("\n");
+    const scenes: any[] = [];
+    let currentScene: any = null;
+    let currentDialogue: any = null;
+    let actionBuffer: string[] = [];
+    const knownCharacters = new Set<string>();
+
+    const finishActionBuffer = () => {
+      if (!currentScene || actionBuffer.length === 0) return;
+      currentScene.scriptBlocks.push({ type: "action", text: actionBuffer.join(" ").trim() });
+      actionBuffer = [];
+    };
+
+    const finishDialogue = () => {
+      if (!currentScene || !currentDialogue) return;
+      currentScene.scriptBlocks.push({
+        type: "dialogueBlock",
+        character: currentDialogue.character,
+        parenthetical: currentDialogue.parenthetical,
+        dialogue: currentDialogue.dialogue.trimEnd()
       });
+      // Extract clean name without parentheticals or dual tags
+      const cleanName = currentDialogue.character.split("(")[0].trim();
+      if (cleanName) knownCharacters.add(cleanName);
+      currentDialogue = null;
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      let trimmed = lines[i].trim();
+      
+      // Strip out source markers if present
+      if (trimmed.includes("");
+        if (endIdx > -1) trimmed = trimmed.substring(endIdx + 1).trim();
+      }
+
+      if (trimmed === "") {
+        finishDialogue();
+        finishActionBuffer();
+        continue;
+      }
+
+      if (isLikelyScene(trimmed)) {
+        finishDialogue();
+        finishActionBuffer();
+        currentScene = { title: trimmed.toUpperCase(), description: "", scriptBlocks: [{ type: "scene_heading", text: trimmed.toUpperCase() }] };
+        scenes.push(currentScene);
+        continue;
+      }
+
+      if (!currentScene) {
+        currentScene = { title: "START", description: "Orphaned text before first scene", scriptBlocks: [] };
+        scenes.push(currentScene);
+      }
+
+      if (isLikelyTransition(trimmed)) {
+        finishDialogue();
+        finishActionBuffer();
+        currentScene.scriptBlocks.push({ type: "transition", text: trimmed.toUpperCase() });
+        continue;
+      }
+
+      if (isLikelyCharacter(trimmed)) {
+        finishDialogue();
+        finishActionBuffer();
+        currentDialogue = { character: trimmed, parenthetical: "", dialogue: "" };
+        continue;
+      }
+
+      if (isLikelyParenthetical(trimmed) && currentDialogue && !currentDialogue.parenthetical) {
+        currentDialogue.parenthetical = trimmed.substring(1, trimmed.length - 1).trim();
+        continue;
+      }
+
+      if (currentDialogue) {
+        currentDialogue.dialogue += (currentDialogue.dialogue ? " " : "") + trimmed;
+        continue;
+      }
+
+      actionBuffer.push(trimmed);
     }
-    return { scenes: parsedScenes, characters: [], productionElements: [] };
+
+    finishDialogue();
+    finishActionBuffer();
+
+    const characters = Array.from(knownCharacters).map(name => ({ name, role: '', description: '' }));
+    return { scenes, characters, productionElements: [] };
   };
 
   const handleImport = async (forceFallback = false) => {
@@ -95,7 +194,7 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
         }
       }
 
-      // Pre-generate Scene Docs so we can map IDs to Production Elements
+      // Pre-generate Scene Docs
       const generatedScenes: { id: string; title: string }[] = [];
       if (data.scenes) {
         let order = 0;
@@ -103,9 +202,15 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
           const newDocRef = doc(collection(db, 'projects', projectId, 'scenes'));
           generatedScenes.push({ id: newDocRef.id, title: scene.title || 'Untitled Scene' });
           
-          const blocksWithIds = (scene.scriptBlocks || []).map((b: any) => ({
-            id: crypto.randomUUID(), type: b.type, text: b.text
-          }));
+          // FIRM FIX: Firestore hates "undefined". We selectively map only existing properties.
+          const blocksWithIds = (scene.scriptBlocks || []).map((b: any) => {
+            const block: any = { id: crypto.randomUUID(), type: b.type };
+            if (b.text !== undefined) block.text = b.text;
+            if (b.character !== undefined) block.character = b.character;
+            if (b.parenthetical !== undefined) block.parenthetical = b.parenthetical;
+            if (b.dialogue !== undefined) block.dialogue = b.dialogue;
+            return block;
+          });
 
           await setDoc(newDocRef, {
             id: newDocRef.id, projectId, title: scene.title || 'Untitled Scene',
@@ -115,7 +220,7 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
         }
       }
 
-      // Save Production Elements
+      // Save Production Elements (AI Only)
       if (data.productionElements) {
         for (const el of data.productionElements) {
           let matchedSceneId = '';
@@ -173,7 +278,7 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
               <Loader2 size={40} className="mb-4 animate-spin text-emerald-500" />
               <p className="font-medium text-emerald-400">Parsing Script...</p>
               <p className="text-xs text-purple-300/50 mt-2 text-center px-4">
-                This may take a minute. If using the basic fallback, this will be incredibly fast (but a bit messy).
+                This may take a minute. If using the basic fallback, this will be incredibly fast.
               </p>
             </div>
           ) : (
@@ -187,6 +292,9 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
                   value={apiKey} onChange={(e) => handleKeyChange(e.target.value)} placeholder="AI_zaSy..."
                   className="flex h-9 w-full rounded-md border border-purple-800/50 bg-[#0a080d] px-3 py-1 text-sm text-slate-200 shadow-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
+                <p className="text-[10px] text-purple-300/50 mt-2">
+                  If the built-in AI quota is exceeded, add your own free Gemini key here. It is saved locally in your browser.
+                </p>
               </div>
 
               <div>
@@ -250,8 +358,8 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
           <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
             <button 
               onClick={() => handleImport(true)} disabled={loading || (importMode === 'upload' ? !selectedFile : !pastedText.trim())}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-[#1e1826] hover:bg-purple-900/50 text-slate-200 border border-purple-800/50 disabled:opacity-50 h-10 px-4 py-2 w-full sm:w-auto"
-              title="Bypass AI and use basic text splitting"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-[#1e1826] hover:bg-purple-900/50 text-emerald-400 border border-purple-800/50 disabled:opacity-50 h-10 px-4 py-2 w-full sm:w-auto"
+              title="Use the offline, regex-free custom parser"
             >
               Basic Import
             </button>
