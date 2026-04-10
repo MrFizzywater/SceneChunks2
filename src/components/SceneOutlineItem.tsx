@@ -36,26 +36,26 @@ export function SceneOutlineItem({ scene, index, onUpdate, onDelete }: SceneOutl
   };
 
   return (
-    <div className="flex gap-4 items-start p-3 hover:bg-[#130f1a] rounded-lg group transition-colors border border-transparent hover:border-purple-900/30">
-      <div className="text-purple-500 font-mono text-sm pt-2 w-6 text-right shrink-0">
+    <div className="flex gap-4 items-start p-3 bg-[#130f1a] hover:bg-[#1e1826] rounded-xl group transition-all border border-purple-900/20 hover:border-emerald-900/50 shadow-sm">
+      <div className="text-purple-500 font-mono text-sm pt-2 w-6 text-right shrink-0 font-bold opacity-50">
         {index + 1}.
       </div>
       <div className="flex-1 space-y-1">
         <input 
           value={title} 
           onChange={handleTitleChange}
-          className="font-bold border-transparent px-2 h-8 focus:outline-none text-slate-200 bg-transparent rounded w-full placeholder:text-purple-700"
+          className="font-bold border-transparent px-2 h-8 focus:outline-none text-slate-100 bg-transparent rounded w-full placeholder:text-purple-800"
           placeholder="Scene Title"
         />
         <input 
           value={description} 
           onChange={handleDescChange}
           placeholder="One line description..."
-          className="text-sm text-purple-300/70 border-transparent px-2 h-7 focus:outline-none bg-transparent rounded w-full placeholder:text-purple-800/60"
+          className="text-sm text-emerald-100/60 border-transparent px-2 h-7 focus:outline-none bg-transparent rounded w-full placeholder:text-purple-900/60"
         />
       </div>
       <button 
-        className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center rounded-md transition-colors h-8 w-8 text-red-400 hover:bg-red-500/20 hover:text-red-400 shrink-0" 
+        className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center rounded-md transition-colors h-8 w-8 text-red-500 hover:bg-red-500 hover:text-[#0a080d] shrink-0" 
         onClick={() => onDelete(scene.id)}
       >
         <Trash2 size={14} />
