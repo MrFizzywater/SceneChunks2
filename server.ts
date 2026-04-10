@@ -48,6 +48,8 @@ Script Content:\n---\n${scriptContent}\n---`;
       if (!apiKeyToUse) return res.status(500).json({ error: "Gemini API key is not configured or provided." });
 
       const ai = new GoogleGenAI({ apiKey: apiKeyToUse });
+      
+      // CRITICAL UPDATE: The schema now groups Dialogue blocks together!
       const prompt = `You are an expert screenplay parser.
 Parse the following script text into a structured JSON format. Extract scenes, characters, and ALL production elements (props, sfx, etc.).
 Return ONLY valid JSON matching this exact schema:
@@ -58,7 +60,13 @@ Return ONLY valid JSON matching this exact schema:
     "title": "string (e.g. INT. HOUSE - DAY)",
     "description": "string (brief summary of the scene)",
     "scriptBlocks": [
-      { "type": "scene_heading" | "action" | "character" | "dialogue" | "parenthetical" | "transition", "text": "string" }
+      { 
+        "type": "scene_heading" | "action" | "transition" | "dialogueBlock", 
+        "text": "string (Use ONLY for action, transition, or scene_heading)", 
+        "character": "string (Use ONLY for dialogueBlock)",
+        "parenthetical": "string (Use ONLY for dialogueBlock, without parentheses)",
+        "dialogue": "string (Use ONLY for dialogueBlock)"
+      }
     ]
   }]
 }
