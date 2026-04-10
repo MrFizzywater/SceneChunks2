@@ -49,7 +49,11 @@ export function AIAnalysisDialog({ open, onOpenChange, scriptContent }: AIAnalys
 
       setFeedback(data.feedback);
     } catch (err: any) {
-      setError(err.message + ". If you hit a quota error, provide your own Gemini API key.");
+      let errorMsg = err.message || "An unknown error occurred.";
+      if (errorMsg.includes('429') || errorMsg.includes('Quota') || errorMsg.includes('RESOURCE_EXHAUSTED')) {
+        errorMsg = "The built-in AI quota is temporarily exhausted. Please enter your own Gemini API key above to continue.";
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
