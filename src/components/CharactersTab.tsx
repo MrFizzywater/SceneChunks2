@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, query, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { Plus, Trash2, User, Image as ImageIcon } from 'lucide-react';
@@ -38,15 +38,9 @@ export function CharactersTab({ projectId }: CharactersTabProps) {
     try {
       const newDocRef = doc(collection(db, 'projects', projectId, 'characters'));
       await setDoc(newDocRef, {
-        id: newDocRef.id,
-        projectId,
-        name: 'New Character',
-        role: '',
-        description: '',
-        traits: '',
-        imageUrl: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        id: newDocRef.id, projectId, name: 'New Character', role: '',
+        description: '', traits: '', imageUrl: '',
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, `projects/${projectId}/characters`);
@@ -98,9 +92,8 @@ function CharacterCard({ character, onUpdate, onDelete }: { character: Character
   const [description, setDescription] = useState(character.description);
   const [traits, setTraits] = useState(character.traits);
   const [imageUrl, setImageUrl] = useState(character.imageUrl || '');
-  const [showImageInput, setShowImageInput] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync state...
   useEffect(() => { setName(character.name); }, [character.name]);
   useEffect(() => { setRole(character.role); }, [character.role]);
   useEffect(() => { setDescription(character.description); }, [character.description]);
@@ -109,12 +102,47 @@ function CharacterCard({ character, onUpdate, onDelete }: { character: Character
 
   const debouncedUpdate = useDebouncedCallback((id, updates) => onUpdate(id, updates), 500);
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_DIMENSION = 400;
+        let { width, height } = img;
+
+        if (width > height && width > MAX_DIMENSION) {
+          height *= MAX_DIMENSION / width;
+          width = MAX_DIMENSION;
+        } else if (height > MAX_DIMENSION) {
+          width *= MAX_DIMENSION / height;
+          height = MAX_DIMENSION;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        setImageUrl(compressedDataUrl);
+        debouncedUpdate(character.id, { imageUrl: compressedDataUrl });
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="flex flex-col group relative overflow-hidden rounded-xl border border-purple-900/30 bg-[#130f1a] shadow-lg shadow-black/20">
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
+        <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
         <button 
           className="inline-flex items-center justify-center rounded-md h-7 w-7 text-emerald-400 bg-[#0a080d]/80 hover:bg-emerald-500 hover:text-[#0a080d] backdrop-blur-sm" 
-          onClick={() => setShowImageInput(!showImageInput)}
+          onClick={() => fileInputRef.current?.click()}
         >
           <ImageIcon size={14} />
         </button>
@@ -127,12 +155,14 @@ function CharacterCard({ character, onUpdate, onDelete }: { character: Character
       </div>
       
       <div className="flex flex-row items-center p-4 pb-3 bg-[#1a1523] border-b border-purple-900/30 gap-4">
-        {/* Avatar */}
-        <div className="w-16 h-16 shrink-0 rounded-full border-2 border-purple-800/50 overflow-hidden bg-[#0a080d] flex items-center justify-center relative">
+        <div 
+          className="w-16 h-16 shrink-0 rounded-full border-2 border-purple-800/50 overflow-hidden bg-[#0a080d] flex items-center justify-center relative cursor-pointer group/avatar"
+          onClick={() => fileInputRef.current?.click()}
+        >
            {imageUrl ? (
-             <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+             <img src={imageUrl} alt={name} className="w-full h-full object-cover group-hover/avatar:opacity-50 transition-opacity" />
            ) : (
-             <User size={24} className="text-purple-600" />
+             <User size={24} className="text-purple-600 group-hover/avatar:text-emerald-400 transition-colors" />
            )}
         </div>
 
@@ -140,26 +170,17 @@ function CharacterCard({ character, onUpdate, onDelete }: { character: Character
           <input 
             value={name} 
             onChange={(e) => { setName(e.target.value); debouncedUpdate(character.id, { name: e.target.value }); }}
-            className="font-bold text-lg border-transparent px-1 h-8 focus:outline-none text-slate-100 bg-transparent placeholder:text-purple-700"
+            className="font-bold text-lg border-transparent px-1 h-8 focus:outline-none text-slate-100 bg-transparent placeholder:text-purple-700 w-full"
             placeholder="Character Name"
           />
           <input 
             value={role} 
             onChange={(e) => { setRole(e.target.value); debouncedUpdate(character.id, { role: e.target.value }); }}
-            className="text-sm text-emerald-400/80 border-transparent px-1 h-7 focus:outline-none bg-transparent placeholder:text-purple-800"
+            className="text-sm text-emerald-400/80 border-transparent px-1 h-7 focus:outline-none bg-transparent placeholder:text-purple-800 w-full"
             placeholder="Role / Archetype"
           />
         </div>
       </div>
-
-      {showImageInput && (
-        <input 
-          value={imageUrl}
-          onChange={(e) => { setImageUrl(e.target.value); debouncedUpdate(character.id, { imageUrl: e.target.value }); }}
-          placeholder="Paste Image URL for Avatar..."
-          className="w-full text-xs bg-[#0a080d] text-emerald-400 p-2 border-b border-purple-900/30 focus:outline-none placeholder:text-purple-500/50"
-        />
-      )}
 
       <div className="p-4 pt-4 space-y-4 flex-1">
         <div className="space-y-1.5">
