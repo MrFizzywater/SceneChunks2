@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, query, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { Plus, Trash2, Printer } from 'lucide-react';
+import { Plus, Trash2, Printer, Tag } from 'lucide-react';
 import { useDebouncedCallback } from '../hooks/useDebounce';
 
 interface ProductionElement {
@@ -11,6 +11,12 @@ interface ProductionElement {
   name: string;
   description: string;
   sceneId: string;
+  tags?: string;
+}
+
+interface Scene {
+  id: string;
+  title: string;
 }
 
 interface ProductionTabProps {
@@ -19,102 +25,51 @@ interface ProductionTabProps {
 
 export function ProductionTab({ projectId }: ProductionTabProps) {
   const [elements, setElements] = useState<ProductionElement[]>([]);
+  const [scenes, setScenes] = useState<Scene[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState<string>('crew');
+  const [activeCategory, setActiveCategory] = useState<string>('prop');
 
   useEffect(() => {
     if (!projectId) return;
 
-    const ref = collection(db, 'projects', projectId, 'productionElements');
-    const q = query(ref);
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched: ProductionElement[] = [];
-      snapshot.forEach((doc) => {
-        fetched.push({ id: doc.id, ...doc.data() } as ProductionElement);
-      });
-      setElements(fetched);
+    // Fetch Elements
+    const elSub = onSnapshot(query(collection(db, 'projects', projectId, 'productionElements')), (snapshot) => {
+      setElements(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ProductionElement)));
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, `projects/${projectId}/productionElements`);
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'productionElements'));
+
+    // Fetch Scenes for dropdowns
+    const sceneSub = onSnapshot(query(collection(db, 'projects', projectId, 'scenes')), (snapshot) => {
+      setScenes(snapshot.docs.map(d => ({ id: d.id, title: d.data().title } as Scene)));
     });
 
-    return unsubscribe;
+    return () => { elSub(); sceneSub(); };
   }, [projectId]);
 
   const handleAddElement = async (category: string) => {
-    try {
-      const newDocRef = doc(collection(db, 'projects', projectId, 'productionElements'));
-      await setDoc(newDocRef, {
-        id: newDocRef.id,
-        projectId,
-        category,
-        name: 'New Item',
-        description: '',
-        sceneId: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, `projects/${projectId}/productionElements`);
-    }
+    const newDocRef = doc(collection(db, 'projects', projectId, 'productionElements'));
+    await setDoc(newDocRef, {
+      id: newDocRef.id,
+      projectId, category,
+      name: 'New Item', description: '', sceneId: '', tags: '',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    });
   };
 
   const handleUpdate = async (id: string, updates: Partial<ProductionElement>) => {
-    try {
-      const ref = doc(db, 'projects', projectId, 'productionElements', id);
-      await updateDoc(ref, {
-        ...updates,
-        updatedAt: new Date().toISOString()
-      });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `projects/${projectId}/productionElements/${id}`);
-    }
+    await updateDoc(doc(db, 'projects', projectId, 'productionElements', id), { ...updates, updatedAt: new Date().toISOString() });
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, 'projects', projectId, 'productionElements', id));
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `projects/${projectId}/productionElements/${id}`);
-    }
+    await deleteDoc(doc(db, 'projects', projectId, 'productionElements', id));
   };
 
-  const handleGenerateBreakdown = () => {
-    let report = `PRODUCTION BREAKDOWN REPORT\n===========================\n\n`;
-    
-    const categories = ['crew', 'location', 'prop', 'music', 'sfx', 'vfx'];
-    const categoryNames: Record<string, string> = {
-      crew: 'CREW', location: 'LOCATIONS', prop: 'PROPS', music: 'MUSIC', sfx: 'SOUND EFFECTS', vfx: 'VISUAL EFFECTS'
-    };
-
-    categories.forEach(cat => {
-      const items = elements.filter(e => e.category === cat);
-      if (items.length > 0) {
-        report += `${categoryNames[cat]}\n---------------------------\n`;
-        items.forEach(item => {
-          report += `- ${item.name.toUpperCase()}\n`;
-          if (item.description) report += `  Notes: ${item.description}\n`;
-        });
-        report += `\n`;
-      }
-    });
-
-    const blob = new Blob([report], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Production_Breakdown.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  if (loading) return <div className="p-8 text-center text-slate-500">Loading production elements...</div>;
+  if (loading) return <div className="p-8 text-center text-purple-500">Loading production elements...</div>;
 
   const categories = [
-    { id: 'crew', label: 'Crew' },
     { id: 'location', label: 'Locations' },
     { id: 'prop', label: 'Props' },
+    { id: 'crew', label: 'Crew' },
     { id: 'music', label: 'Music' },
     { id: 'sfx', label: 'Sound F/X' },
     { id: 'vfx', label: 'Visual F/X' },
@@ -124,28 +79,26 @@ export function ProductionTab({ projectId }: ProductionTabProps) {
     <div className="max-w-6xl mx-auto p-4 flex flex-col h-full">
       <div className="flex justify-between items-center mb-6 shrink-0">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Production</h2>
-          <p className="text-slate-500">Manage elements for your script breakdown.</p>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-100">Production</h2>
+          <p className="text-purple-400">Tag elements and link them to specific scenes.</p>
         </div>
         <button 
-          onClick={handleGenerateBreakdown} 
-          className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 h-10 px-4 py-2"
+          className="inline-flex items-center gap-2 rounded-md text-sm font-medium bg-purple-900/30 text-purple-200 border border-purple-800 hover:bg-purple-800/50 h-10 px-4 py-2"
         >
-          <Printer size={16} />
-          Generate Breakdown Report
+          <Printer size={16} /> Generate Breakdown
         </button>
       </div>
 
       <div className="flex-1 flex flex-col">
-        <div className="grid w-full grid-cols-3 md:grid-cols-6 mb-6 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg shrink-0">
+        <div className="grid w-full grid-cols-3 md:grid-cols-6 mb-6 bg-[#0a080d] border border-purple-900/30 p-1 rounded-lg shrink-0">
           {categories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-all ${
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-bold transition-all ${
                 activeCategory === cat.id 
-                  ? 'bg-white dark:bg-slate-900 text-slate-950 dark:text-slate-50 shadow-sm' 
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                  ? 'bg-emerald-600 text-[#0a080d] shadow-sm' 
+                  : 'text-purple-400 hover:text-emerald-400'
               }`}
             >
               {cat.label}
@@ -156,16 +109,11 @@ export function ProductionTab({ projectId }: ProductionTabProps) {
         <div className="flex-1 overflow-y-auto m-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-10">
             {elements.filter(e => e.category === activeCategory).map(el => (
-              <ElementCard 
-                key={el.id} 
-                element={el} 
-                onUpdate={handleUpdate} 
-                onDelete={handleDelete} 
-              />
+              <ElementCard key={el.id} element={el} scenes={scenes} onUpdate={handleUpdate} onDelete={handleDelete} />
             ))}
             
             <button 
-              className="inline-flex items-center justify-center rounded-md transition-colors h-48 border border-dashed border-slate-300 dark:border-slate-700 flex flex-col gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-indigo-500/50 bg-slate-50 dark:bg-slate-900/50"
+              className="inline-flex items-center justify-center rounded-xl transition-colors h-56 border-2 border-dashed border-purple-900/50 flex flex-col gap-2 text-purple-500 hover:text-emerald-400 hover:border-emerald-500/50 bg-[#130f1a]/50"
               onClick={() => handleAddElement(activeCategory)}
             >
               <Plus size={24} />
@@ -178,41 +126,64 @@ export function ProductionTab({ projectId }: ProductionTabProps) {
   );
 }
 
-function ElementCard({ element, onUpdate, onDelete }: { element: ProductionElement, onUpdate: any, onDelete: any }) {
+function ElementCard({ element, scenes, onUpdate, onDelete }: { element: ProductionElement, scenes: Scene[], onUpdate: any, onDelete: any }) {
   const [name, setName] = useState(element.name);
   const [description, setDescription] = useState(element.description);
+  const [sceneId, setSceneId] = useState(element.sceneId || '');
+  const [tags, setTags] = useState(element.tags || '');
 
   useEffect(() => { setName(element.name); }, [element.name]);
   useEffect(() => { setDescription(element.description); }, [element.description]);
+  useEffect(() => { setSceneId(element.sceneId || ''); }, [element.sceneId]);
+  useEffect(() => { setTags(element.tags || ''); }, [element.tags]);
 
-  const debouncedUpdate = useDebouncedCallback((id, updates) => {
-    onUpdate(id, updates);
-  }, 500);
+  const debouncedUpdate = useDebouncedCallback((id, updates) => onUpdate(id, updates), 500);
 
   return (
-    <div className="flex flex-col group relative overflow-hidden h-48 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+    <div className="flex flex-col group relative overflow-hidden h-56 rounded-xl border border-purple-900/30 bg-[#130f1a] shadow-lg">
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
         <button 
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-8 w-8 text-red-500 bg-white/80 dark:bg-slate-900/80 hover:bg-red-500 hover:text-white backdrop-blur-sm" 
+          className="inline-flex items-center justify-center rounded-md h-7 w-7 text-red-400 bg-[#0a080d]/80 hover:bg-red-500 hover:text-white backdrop-blur-sm" 
           onClick={() => onDelete(element.id)}
         >
           <Trash2 size={14} />
         </button>
       </div>
-      <div className="p-3 pb-2 bg-slate-50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
+      
+      <div className="p-3 pb-2 bg-[#1a1523] border-b border-purple-900/30">
         <input 
           value={name} 
           onChange={(e) => { setName(e.target.value); debouncedUpdate(element.id, { name: e.target.value }); }}
-          className="font-bold text-base border-transparent px-1 h-8 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent rounded w-full"
-          placeholder="Name / Title"
+          className="font-bold text-base border-transparent px-1 h-8 focus:outline-none text-emerald-400 bg-transparent rounded w-full placeholder:text-purple-700"
+          placeholder="Element Name"
         />
       </div>
-      <div className="p-3 flex-1 flex flex-col">
+
+      <div className="p-3 flex-1 flex flex-col gap-2">
+        <select
+          value={sceneId}
+          onChange={(e) => { setSceneId(e.target.value); debouncedUpdate(element.id, { sceneId: e.target.value }); }}
+          className="text-xs bg-[#0a080d] text-purple-300 border border-purple-900/50 rounded p-1.5 focus:outline-none focus:border-emerald-500/50 w-full"
+        >
+          <option value="">-- Link to Scene --</option>
+          {scenes.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+        </select>
+
         <textarea 
           value={description}
           onChange={(e) => { setDescription(e.target.value); debouncedUpdate(element.id, { description: e.target.value }); }}
-          placeholder="Notes, details, or specific scene requirements..."
-          className="resize-none flex-1 text-sm border-transparent focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent p-1 rounded w-full"
+          placeholder="Notes, details..."
+          className="resize-none flex-1 text-sm border border-purple-900/20 bg-[#0a080d]/50 text-slate-200 focus:outline-none focus:border-emerald-500/50 p-2 rounded w-full placeholder:text-purple-800/50"
+        />
+      </div>
+
+      <div className="px-3 py-2 bg-[#0a080d] border-t border-purple-900/30 flex items-center gap-2">
+        <Tag size={12} className="text-purple-500 shrink-0" />
+        <input 
+          value={tags}
+          onChange={(e) => { setTags(e.target.value); debouncedUpdate(element.id, { tags: e.target.value }); }}
+          placeholder="Tags (e.g. vintage, bloody, rented)"
+          className="text-xs bg-transparent text-emerald-400/80 focus:outline-none w-full placeholder:text-purple-800"
         />
       </div>
     </div>
