@@ -199,7 +199,9 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
                   Your Gemini API Key (Optional)
                 </label>
                 <input 
-                  type="password" 
+                  type="text" 
+                  autoComplete="off"
+                  spellCheck="false"
                   value={apiKey}
                   onChange={(e) => handleKeyChange(e.target.value)}
                   placeholder="AI_zaSy..."
