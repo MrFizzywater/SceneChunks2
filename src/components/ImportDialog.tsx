@@ -21,6 +21,14 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
   const [apiKey, setApiKey] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Add this missing function back in!
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
+      setError(null);
+    }
+  };
+
   // Load saved key on mount
   useEffect(() => {
     const savedKey = localStorage.getItem('gemini_custom_key');
