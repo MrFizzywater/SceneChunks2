@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { Button } from '@/components/button';
-import { Input } from '@/components/input';
-import { Textarea } from '@/components/textarea';
-import { Card, CardContent, CardHeader } from '@/components/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/tabs';
-import { Plus, Trash2, FileText, Printer } from 'lucide-react';
+import { collection, query, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { Plus, Trash2, Printer } from 'lucide-react';
 import { useDebouncedCallback } from '../hooks/useDebounce';
 
 interface ProductionElement {
@@ -114,7 +109,7 @@ export function ProductionTab({ projectId }: ProductionTabProps) {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) return <div className="p-8 text-center text-muted-foreground">Loading production elements...</div>;
+  if (loading) return <div className="p-8 text-center text-slate-500">Loading production elements...</div>;
 
   const categories = [
     { id: 'crew', label: 'Crew' },
@@ -130,45 +125,55 @@ export function ProductionTab({ projectId }: ProductionTabProps) {
       <div className="flex justify-between items-center mb-6 shrink-0">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Production</h2>
-          <p className="text-muted-foreground">Manage elements for your script breakdown.</p>
+          <p className="text-slate-500">Manage elements for your script breakdown.</p>
         </div>
-        <Button onClick={handleGenerateBreakdown} className="gap-2 bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-200 dark:hover:bg-slate-300 dark:text-slate-900">
+        <button 
+          onClick={handleGenerateBreakdown} 
+          className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 h-10 px-4 py-2"
+        >
           <Printer size={16} />
           Generate Breakdown Report
-        </Button>
+        </button>
       </div>
 
-      <Tabs value={activeCategory} onValueChange={setActiveCategory} className="flex-1 flex flex-col">
-        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 mb-4 shrink-0 h-auto">
+      <div className="flex-1 flex flex-col">
+        <div className="grid w-full grid-cols-3 md:grid-cols-6 mb-6 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg shrink-0">
           {categories.map(cat => (
-            <TabsTrigger key={cat.id} value={cat.id} className="py-2">{cat.label}</TabsTrigger>
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-all ${
+                activeCategory === cat.id 
+                  ? 'bg-white dark:bg-slate-900 text-slate-950 dark:text-slate-50 shadow-sm' 
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+              }`}
+            >
+              {cat.label}
+            </button>
           ))}
-        </TabsList>
+        </div>
 
-        {categories.map(cat => (
-          <TabsContent key={cat.id} value={cat.id} className="flex-1 overflow-y-auto m-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-10">
-              {elements.filter(e => e.category === cat.id).map(el => (
-                <ElementCard 
-                  key={el.id} 
-                  element={el} 
-                  onUpdate={handleUpdate} 
-                  onDelete={handleDelete} 
-                />
-              ))}
-              
-              <Button 
-                variant="outline" 
-                className="h-48 border-dashed flex flex-col gap-2 text-muted-foreground hover:text-foreground hover:border-primary/50"
-                onClick={() => handleAddElement(cat.id)}
-              >
-                <Plus size={24} />
-                <span>Add {cat.label}</span>
-              </Button>
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+        <div className="flex-1 overflow-y-auto m-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-10">
+            {elements.filter(e => e.category === activeCategory).map(el => (
+              <ElementCard 
+                key={el.id} 
+                element={el} 
+                onUpdate={handleUpdate} 
+                onDelete={handleDelete} 
+              />
+            ))}
+            
+            <button 
+              className="inline-flex items-center justify-center rounded-md transition-colors h-48 border border-dashed border-slate-300 dark:border-slate-700 flex flex-col gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-indigo-500/50 bg-slate-50 dark:bg-slate-900/50"
+              onClick={() => handleAddElement(activeCategory)}
+            >
+              <Plus size={24} />
+              <span>Add {categories.find(c => c.id === activeCategory)?.label}</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -185,28 +190,31 @@ function ElementCard({ element, onUpdate, onDelete }: { element: ProductionEleme
   }, 500);
 
   return (
-    <Card className="flex flex-col group relative overflow-hidden h-48">
+    <div className="flex flex-col group relative overflow-hidden h-48 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive bg-background/80 hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(element.id)}>
+        <button 
+          className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-8 w-8 text-red-500 bg-white/80 dark:bg-slate-900/80 hover:bg-red-500 hover:text-white backdrop-blur-sm" 
+          onClick={() => onDelete(element.id)}
+        >
           <Trash2 size={14} />
-        </Button>
+        </button>
       </div>
-      <CardHeader className="pb-2 bg-muted/30 p-3">
-        <Input 
+      <div className="p-3 pb-2 bg-slate-50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
+        <input 
           value={name} 
           onChange={(e) => { setName(e.target.value); debouncedUpdate(element.id, { name: e.target.value }); }}
-          className="font-bold text-base border-transparent px-1 h-8 focus-visible:ring-1 bg-transparent"
+          className="font-bold text-base border-transparent px-1 h-8 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent rounded w-full"
           placeholder="Name / Title"
         />
-      </CardHeader>
-      <CardContent className="p-3 flex-1 flex flex-col">
-        <Textarea 
+      </div>
+      <div className="p-3 flex-1 flex flex-col">
+        <textarea 
           value={description}
           onChange={(e) => { setDescription(e.target.value); debouncedUpdate(element.id, { description: e.target.value }); }}
           placeholder="Notes, details, or specific scene requirements..."
-          className="resize-none flex-1 text-sm border-transparent focus-visible:ring-1 bg-transparent p-1"
+          className="resize-none flex-1 text-sm border-transparent focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent p-1 rounded w-full"
         />
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
