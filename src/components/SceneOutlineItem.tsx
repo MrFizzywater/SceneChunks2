@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { Input } from '@/components/input';
+import { Button } from '@/components/button';
 import { Trash2 } from 'lucide-react';
 import { useDebouncedCallback } from '../hooks/useDebounce';
 
@@ -36,30 +38,27 @@ export function SceneOutlineItem({ scene, index, onUpdate, onDelete }: SceneOutl
   };
 
   return (
-    <div className="flex gap-4 items-start p-3 bg-[#130f1a] hover:bg-[#1e1826] rounded-xl group transition-all border border-purple-900/20 hover:border-emerald-900/50 shadow-sm">
-      <div className="text-purple-500 font-mono text-sm pt-2 w-6 text-right shrink-0 font-bold opacity-50">
+    <div className="flex gap-4 items-start p-3 hover:bg-muted/50 rounded-lg group">
+      <div className="text-muted-foreground font-mono text-sm pt-2 w-6 text-right shrink-0">
         {index + 1}.
       </div>
       <div className="flex-1 space-y-1">
-        <input 
+        <Input 
           value={title} 
           onChange={handleTitleChange}
-          className="font-bold border-transparent px-2 h-8 focus:outline-none text-slate-100 bg-transparent rounded w-full placeholder:text-purple-800"
+          className="font-bold border-transparent px-2 h-8 focus-visible:ring-1 bg-transparent"
           placeholder="Scene Title"
         />
-        <input 
+        <Input 
           value={description} 
           onChange={handleDescChange}
           placeholder="One line description..."
-          className="text-sm text-emerald-100/60 border-transparent px-2 h-7 focus:outline-none bg-transparent rounded w-full placeholder:text-purple-900/60"
+          className="text-sm text-muted-foreground border-transparent px-2 h-7 focus-visible:ring-1 bg-transparent"
         />
       </div>
-      <button 
-        className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center rounded-md transition-colors h-8 w-8 text-red-500 hover:bg-red-500 hover:text-[#0a080d] shrink-0" 
-        onClick={() => onDelete(scene.id)}
-      >
+      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 h-8 w-8 text-destructive shrink-0" onClick={() => onDelete(scene.id)}>
         <Trash2 size={14} />
-      </button>
+      </Button>
     </div>
   );
 }

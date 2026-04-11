@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, getDoc, collection, query, orderBy, onSnapshot, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { ArrowLeft, Plus, Download, Sparkles, Upload, PanelRightClose, PanelRightOpen, Maximize2, Minimize2, Wand2, FileText, LayoutGrid, List, Users, Film, Sun, Moon } from 'lucide-react';
+import { Button } from '@/components/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/tabs';
+import { ArrowLeft, Plus, Settings, Download, Sparkles, Upload, PanelRightClose, PanelRightOpen, Maximize2, Minimize2, Wand2 } from 'lucide-react';
 import { SceneCard } from '../components/SceneCard';
 import { SceneOutlineItem } from '../components/SceneOutlineItem';
 import { ScriptEditor, ScriptBlock } from '../components/ScriptEditor';
@@ -45,7 +47,6 @@ export function ProjectView() {
   const [showImport, setShowImport] = useState(false);
   const [showExtract, setShowExtract] = useState(false);
   const [writerMode, setWriterMode] = useState(false);
-  const [isLightPage, setIsLightPage] = useState(true); // Toggles paper color
   const [visibleSceneCards, setVisibleSceneCards] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -77,13 +78,13 @@ export function ProjectView() {
         fetchedScenes.push({ id: doc.id, ...doc.data() } as Scene);
       });
       setScenes(fetchedScenes);
-      loading && setLoading(false);
+      setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, `projects/${projectId}/scenes`);
     });
 
     return unsubscribe;
-  }, [user, projectId, navigate, loading]);
+  }, [user, projectId, navigate]);
 
   const handleAddScene = async () => {
     if (!projectId) return;
@@ -172,23 +173,15 @@ export function ProjectView() {
   };
 
   if (loading) {
-    return <div className="flex h-screen items-center justify-center bg-[#0a080d] text-purple-500">Loading project...</div>;
+    return <div className="flex h-screen items-center justify-center">Loading project...</div>;
   }
 
   if (!project) {
-    return <div className="flex h-screen items-center justify-center bg-[#0a080d] text-purple-500">Project not found</div>;
+    return <div>Project not found</div>;
   }
 
-  const tabNavigation = [
-    { id: 'script', label: 'Script', icon: FileText },
-    { id: 'cards', label: 'Cards', icon: LayoutGrid },
-    { id: 'outline', label: 'Outline', icon: List },
-    { id: 'characters', label: 'Characters', icon: Users },
-    { id: 'production', label: 'Production', icon: Film },
-  ];
-
   return (
-    <div className="min-h-screen flex flex-col transition-all duration-500 bg-[#0a080d] text-slate-200">
+    <div className={`min-h-screen bg-background flex flex-col transition-all duration-500 ${writerMode ? 'bg-[#F9F7F1] dark:bg-[#1A1A1A]' : ''}`}>
       <AIAnalysisDialog 
         open={showAnalysis} 
         onOpenChange={setShowAnalysis} 
@@ -200,245 +193,205 @@ export function ProjectView() {
             open={showImport} 
             onOpenChange={setShowImport} 
             projectId={projectId} 
-            onSuccess={() => {}} 
+            onSuccess={() => {
+              // Optional: show a toast notification here
+            }} 
           />
           <ExtractElementsDialog
             open={showExtract}
             onOpenChange={setShowExtract}
             projectId={projectId}
             scriptContent={getFullScriptContent()}
-            scenes={scenes}
           />
         </>
       )}
       
       {!writerMode && (
-        <header className="border-b border-purple-900/30 bg-[#130f1a]/80 backdrop-blur-md px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-lg shadow-black/40">
+        <header className="border-b bg-card/80 backdrop-blur-md px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate('/')} 
-              className="inline-flex items-center justify-center rounded-md h-10 w-10 transition-colors hover:bg-purple-900/30 text-purple-500 hover:text-emerald-400 active:scale-95"
-            >
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="hover:bg-muted">
               <ArrowLeft size={18} />
-            </button>
+            </Button>
             <div>
-              <h1 className="text-lg font-bold tracking-tight leading-none font-serif text-slate-100">{project.title}</h1>
-              <p className="text-xs text-purple-400 mt-1 font-medium">{scenes.length} scenes</p>
+              <h1 className="text-lg font-bold tracking-tight leading-none font-serif">{project.title}</h1>
+              <p className="text-xs text-muted-foreground mt-1 font-medium">{scenes.length} scenes</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <div className="hidden sm:block">
-              <SessionGoalTracker scriptContent={getFullScriptContent()} />
-            </div>
-            
-            <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-all bg-gradient-to-b from-[#1e1826] to-[#130f1a] border border-purple-900/50 shadow-md shadow-black/40 hover:shadow-purple-900/20 hover:border-purple-700 hover:text-emerald-400 text-purple-300 h-9 px-3 active:translate-y-[1px] shrink-0"
-              onClick={() => setShowImport(true)}
-            >
-              <Upload size={14} /> <span className="hidden md:inline">Import</span>
-            </button>
-            
-            <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-all bg-gradient-to-b from-[#1e1826] to-[#130f1a] border border-purple-900/50 shadow-md shadow-black/40 hover:shadow-purple-900/20 hover:border-purple-700 hover:text-emerald-400 text-purple-300 h-9 px-3 active:translate-y-[1px] shrink-0"
-              onClick={handleExport}
-            >
-              <Download size={14} /> <span className="hidden md:inline">Export</span>
-            </button>
-            
-            <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-all bg-gradient-to-b from-[#0f1f1a] to-[#0a1410] border border-emerald-900/50 shadow-md shadow-black/40 hover:shadow-emerald-900/20 hover:border-emerald-700 text-emerald-400 h-9 px-3 active:translate-y-[1px] shrink-0"
+          <div className="flex items-center gap-2">
+            <SessionGoalTracker scriptContent={getFullScriptContent()} />
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowImport(true)}>
+              <Upload size={14} />
+              Import
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
+              <Download size={14} />
+              Export
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
               onClick={() => setShowExtract(true)}
             >
-              <Wand2 size={14} /> <span className="hidden lg:inline">Extract Elements</span>
-            </button>
-            
-            <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-all bg-gradient-to-b from-[#0f1f1a] to-[#0a1410] border border-emerald-900/50 shadow-md shadow-black/40 hover:shadow-emerald-900/20 hover:border-emerald-700 text-emerald-400 h-9 px-3 active:translate-y-[1px] shrink-0"
+              <Wand2 size={14} />
+              Extract Elements
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
               onClick={() => setShowAnalysis(true)}
             >
-              <Sparkles size={14} /> <span className="hidden lg:inline">AI Analysis</span>
-            </button>
-            
-            <button 
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-bold transition-all bg-gradient-to-b from-emerald-500 to-emerald-700 border border-emerald-400 hover:from-emerald-400 hover:to-emerald-600 text-[#0a080d] h-9 px-4 shadow-lg shadow-emerald-900/20 active:translate-y-[1px] shrink-0"
+              <Sparkles size={14} />
+              AI Analysis
+            </Button>
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="gap-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-900"
               onClick={() => {
                 setActiveTab('script');
                 setWriterMode(true);
               }}
             >
-              <Maximize2 size={14} /> <span className="hidden sm:inline">Writer's Mode</span>
-            </button>
+              <Maximize2 size={14} />
+              Writer's Mode
+            </Button>
           </div>
         </header>
       )}
 
       {writerMode && (
         <div className="fixed top-4 right-4 z-50">
-          <button 
-            className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors border border-purple-700/50 shadow-lg shadow-black/40 bg-[#130f1a]/80 backdrop-blur-sm hover:bg-purple-900/50 text-purple-300 hover:text-emerald-400 h-9 px-4 active:scale-95"
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2 shadow-md bg-background/80 backdrop-blur-sm border-muted/50 hover:bg-background"
             onClick={() => setWriterMode(false)}
           >
-            <Minimize2 size={14} /> Exit Writer's Mode
-          </button>
+            <Minimize2 size={14} />
+            Exit Writer's Mode
+          </Button>
         </div>
       )}
 
-      <main className={`flex-1 flex flex-col overflow-hidden ${writerMode ? 'p-0 h-screen' : 'p-4 sm:p-6 h-[calc(100vh-65px)]'}`}>
-        <div className="flex-1 flex flex-col h-full max-w-7xl mx-auto w-full">
-          
+      <main className={`flex-1 flex flex-col overflow-hidden ${writerMode ? 'p-0 h-screen' : 'p-6 h-[calc(100vh-65px)]'}`}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col h-full">
           {!writerMode && (
-            <div className="grid w-full grid-cols-5 mb-6 shrink-0 bg-[#130f1a] border border-purple-900/40 p-1.5 rounded-xl shadow-inner">
-              {tabNavigation.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-2 sm:px-4 py-2 sm:py-2.5 text-sm font-bold transition-all ${
-                      activeTab === tab.id 
-                        ? 'bg-gradient-to-b from-emerald-500 to-emerald-600 text-[#0a080d] shadow-md shadow-emerald-900/20' 
-                        : 'text-purple-400 hover:text-emerald-400 hover:bg-purple-900/20'
-                    }`}
-                  >
-                    <Icon size={16} />
-                    <span className="hidden sm:inline">{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <TabsList className="grid w-full max-w-3xl grid-cols-5 mb-6 shrink-0 bg-muted/50 p-1 rounded-lg">
+              <TabsTrigger value="script" className="rounded-md data-[state=active]:shadow-sm">Script</TabsTrigger>
+              <TabsTrigger value="cards" className="rounded-md data-[state=active]:shadow-sm">Cards</TabsTrigger>
+              <TabsTrigger value="outline" className="rounded-md data-[state=active]:shadow-sm">Outline</TabsTrigger>
+              <TabsTrigger value="characters" className="rounded-md data-[state=active]:shadow-sm">Characters</TabsTrigger>
+              <TabsTrigger value="production" className="rounded-md data-[state=active]:shadow-sm">Production</TabsTrigger>
+            </TabsList>
           )}
           
-          <div className={`flex-1 overflow-y-auto pb-10 ${writerMode ? 'px-0 sm:px-4 pt-16' : 'pr-1 sm:pr-2'}`}>
+          <div className={`flex-1 overflow-y-auto pb-10 ${writerMode ? 'px-4 pt-16' : 'pr-2'}`}>
+            <TabsContent value="cards" className="h-full m-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {scenes.map((scene) => (
+                  <SceneCard 
+                    key={scene.id} 
+                    scene={scene} 
+                    onUpdate={handleUpdateScene} 
+                    onDelete={handleDeleteScene} 
+                  />
+                ))}
+                
+                <Button 
+                  variant="outline" 
+                  className="h-64 border-dashed flex flex-col gap-2 text-muted-foreground hover:text-foreground hover:border-primary/50 bg-muted/10"
+                  onClick={handleAddScene}
+                >
+                  <Plus size={24} />
+                  <span>Add Scene Card</span>
+                </Button>
+              </div>
+            </TabsContent>
             
-            {activeTab === 'cards' && (
-              <div className="h-full m-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <TabsContent value="outline" className="h-full m-0">
+              <div className="max-w-4xl mx-auto space-y-2">
+                {scenes.map((scene, index) => (
+                  <SceneOutlineItem 
+                    key={scene.id} 
+                    scene={scene} 
+                    index={index} 
+                    onUpdate={handleUpdateScene} 
+                    onDelete={handleDeleteScene} 
+                  />
+                ))}
+                <Button variant="ghost" className="w-full justify-start text-muted-foreground mt-4 hover:bg-muted/50" onClick={handleAddScene}>
+                  <Plus size={16} className="mr-2" />
+                  Add Scene
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="characters" className="h-full m-0">
+              {projectId && <CharactersTab projectId={projectId} />}
+            </TabsContent>
+
+            <TabsContent value="production" className="h-full m-0">
+              {projectId && <ProductionTab projectId={projectId} />}
+            </TabsContent>
+            
+            <TabsContent value="script" className="h-full m-0 flex flex-col">
+              <div className="flex-1 overflow-y-auto">
+                <div className={`mx-auto transition-all duration-500 ${writerMode ? 'max-w-4xl' : 'max-w-6xl'}`}>
                   {scenes.map((scene) => (
-                    <SceneCard 
-                      key={scene.id} 
-                      scene={scene} 
-                      onUpdate={handleUpdateScene} 
-                      onDelete={handleDeleteScene} 
-                    />
-                  ))}
-                  
-                  <button 
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all h-[22rem] border-2 border-dashed border-purple-900/50 flex flex-col gap-2 text-purple-500 hover:text-emerald-400 hover:border-emerald-500 hover:bg-[#130f1a]/80 bg-[#130f1a]/30 shadow-inner"
-                    onClick={handleAddScene}
-                  >
-                    <Plus size={24} />
-                    <span>Add Scene Card</span>
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {activeTab === 'outline' && (
-              <div className="h-full m-0">
-                <div className="max-w-4xl mx-auto space-y-2">
-                  {scenes.map((scene, index) => (
-                    <SceneOutlineItem 
-                      key={scene.id} 
-                      scene={scene} 
-                      index={index} 
-                      onUpdate={handleUpdateScene} 
-                      onDelete={handleDeleteScene} 
-                    />
-                  ))}
-                  <button 
-                    className="inline-flex items-center rounded-lg text-sm font-bold transition-all hover:bg-emerald-900/20 text-purple-400 hover:text-emerald-400 w-full justify-start mt-4 h-12 px-4 py-2 border border-dashed border-purple-900/30 hover:border-emerald-500/50" 
-                    onClick={handleAddScene}
-                  >
-                    <Plus size={16} className="mr-2" />
-                    Add Scene Beat
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'characters' && (
-              <div className="h-full m-0">
-                {projectId && <CharactersTab projectId={projectId} />}
-              </div>
-            )}
-
-            {activeTab === 'production' && (
-              <div className="h-full m-0">
-                {projectId && <ProductionTab projectId={projectId} />}
-              </div>
-            )}
-            
-            {activeTab === 'script' && (
-              <div className="h-full m-0 flex flex-col">
-                <div className="flex-1 overflow-y-auto">
-                  <div className={`mx-auto transition-all duration-500 ${writerMode ? 'max-w-4xl' : 'max-w-6xl'}`}>
-                    
-                    {/* The Page Color Toggle */}
-                    <div className="flex justify-end mb-4 px-4 lg:px-0">
-                      <button
-                        onClick={() => setIsLightPage(!isLightPage)}
-                        className="inline-flex items-center gap-2 rounded-md text-xs font-medium bg-[#130f1a] border border-purple-900/50 text-purple-400 hover:text-emerald-400 hover:border-emerald-900/50 px-3 py-1.5 transition-colors shadow-sm"
-                      >
-                        {isLightPage ? <Moon size={14} /> : <Sun size={14} />}
-                        {isLightPage ? "Switch to Dark Page" : "Switch to Light Page"}
-                      </button>
-                    </div>
-
-                    {scenes.map((scene) => (
-                      <div key={scene.id} className={`flex gap-6 relative group mb-8 sm:mb-12 ${writerMode ? 'justify-center' : ''}`}>
-                        <div className="flex-1">
-                          <ScriptEditor 
-                            sceneTitle={scene.title}
-                            blocks={scene.scriptBlocks || []}
-                            onChange={(blocks) => handleUpdateScene(scene.id, { scriptBlocks: blocks })}
-                            isLightPage={isLightPage}
-                          />
-                        </div>
-                        
-                        {/* Attached Scene Card - Hidden in Writer's Mode */}
-                        {!writerMode && visibleSceneCards.has(scene.id) ? (
-                          <div className="w-72 shrink-0 sticky top-4 self-start hidden lg:block z-10">
-                            <div className="relative">
-                              <SceneCard 
-                                scene={scene} 
-                                onUpdate={handleUpdateScene} 
-                                onDelete={handleDeleteScene} 
-                              />
-                              <button 
-                                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-[#0a080d]/80 backdrop-blur-sm text-emerald-400 hover:bg-emerald-500 hover:text-[#0a080d] absolute -top-3 -right-3 h-8 w-8 shadow-lg shadow-black/50 z-20 border border-purple-900/50"
-                                onClick={() => toggleSceneCard(scene.id)}
-                              >
-                                <PanelRightClose size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        ) : !writerMode ? (
-                          <div className="absolute -right-12 top-12 opacity-0 group-hover:opacity-100 transition-opacity hidden lg:block z-10">
-                            <button 
-                              className="inline-flex items-center justify-center rounded-md transition-colors h-8 w-8 shadow-sm bg-[#130f1a] border border-purple-900/30 hover:bg-emerald-900/30 hover:border-emerald-500/50 text-purple-400 hover:text-emerald-400"
-                              onClick={() => toggleSceneCard(scene.id)}
-                              title="Show Scene Card"
-                            >
-                              <PanelRightOpen size={14} />
-                            </button>
-                          </div>
-                        ) : null}
+                    <div key={scene.id} className={`flex gap-6 relative group mb-12 ${writerMode ? 'justify-center' : ''}`}>
+                      <div className="flex-1">
+                        <ScriptEditor 
+                          sceneTitle={scene.title}
+                          blocks={scene.scriptBlocks || []}
+                          onChange={(blocks) => handleUpdateScene(scene.id, { scriptBlocks: blocks })}
+                        />
                       </div>
-                    ))}
-                    <button 
-                      className="inline-flex items-center rounded-lg text-sm font-bold transition-colors hover:bg-purple-900/20 text-purple-400 hover:text-emerald-400 w-full justify-center mt-4 mb-12 h-12 px-4 py-2 border border-dashed border-purple-900/50 hover:border-emerald-500" 
-                      onClick={handleAddScene}
-                    >
-                      <Plus size={16} className="mr-2" />
-                      Add New Scene
-                    </button>
-                  </div>
+                      
+                      {/* Attached Scene Card - Hidden in Writer's Mode */}
+                      {!writerMode && visibleSceneCards.has(scene.id) ? (
+                        <div className="w-72 shrink-0 sticky top-4 self-start">
+                          <div className="relative">
+                            <SceneCard 
+                              scene={scene} 
+                              onUpdate={handleUpdateScene} 
+                              onDelete={handleDeleteScene} 
+                            />
+                            <Button 
+                              variant="secondary" 
+                              size="icon" 
+                              className="absolute -top-3 -right-3 h-8 w-8 rounded-full shadow-md z-20 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                              onClick={() => toggleSceneCard(scene.id)}
+                            >
+                              <PanelRightClose size={14} />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : !writerMode ? (
+                        <div className="absolute -right-12 top-12 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8 rounded-full shadow-sm bg-background hover:bg-muted"
+                            onClick={() => toggleSceneCard(scene.id)}
+                            title="Show Scene Card"
+                          >
+                            <PanelRightOpen size={14} className="text-muted-foreground" />
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                  <Button variant="ghost" className="w-full text-muted-foreground mt-8 hover:bg-muted/50" onClick={handleAddScene}>
+                    <Plus size={16} className="mr-2" />
+                    Add Scene
+                  </Button>
                 </div>
               </div>
-            )}
-            
+            </TabsContent>
           </div>
-        </div>
+        </Tabs>
       </main>
     </div>
   );
