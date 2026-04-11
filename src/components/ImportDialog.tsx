@@ -115,14 +115,19 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
       const rawLine = lines[i];
       let trimmed = rawLine.trim();
       
-      // Strip out source markers if present
-      if (trimmed.includes("");
-        if (endIdx > -1) trimmed = trimmed.substring(endIdx + 1).trim();
+      // PERFECTED: Strip out source markers if present
+      const sourceIdx = trimmed.indexOf("", sourceIdx);
+        if (endIdx > -1) {
+          trimmed = trimmed.substring(endIdx + 1).trim();
+        }
       }
 
-      const cleanRaw = rawLine.includes("") > -1 
-        ? rawLine.substring(rawLine.indexOf("]") + 1) 
-        : rawLine;
+      let cleanRaw = rawLine;
+      const rawSourceIdx = cleanRaw.indexOf("", rawSourceIdx);
+        if (rawEndIdx > -1) {
+          cleanRaw = cleanRaw.substring(rawEndIdx + 1);
+        }
+      }
       const indentWidth = getIndent(cleanRaw);
 
       // FRONT MATTER SKIPPING
