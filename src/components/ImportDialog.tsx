@@ -77,9 +77,23 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
     let actionBuffer: string[] = [];
     const knownCharacters = new Set<string>();
 
+    let scriptStarted = false;
+    let learnedCharIndent: number | null = null;
+
+    const getIndent = (lineStr: string) => {
+      let count = 0;
+      for (let i = 0; i < lineStr.length; i++) {
+        const c = lineStr[i];
+        if (c === " ") count++;
+        else if (c === "\t") count += 4;
+        else break;
+      }
+      return count;
+    };
+
     const finishActionBuffer = () => {
       if (!currentScene || actionBuffer.length === 0) return;
-      currentScene.scriptBlocks.push({ type: "action", text: actionBuffer.join(" ").trim() });
+      currentScene.scriptBlocks.push({ type: "action", text: actionBuffer.join("\n\n").trim() });
       actionBuffer = [];
     };
 
@@ -98,19 +112,36 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
     };
 
     for (let i = 0; i < lines.length; i++) {
-      let trimmed = lines[i].trim();
+      const rawLine = lines[i];
+      let trimmed = rawLine.trim();
       
       // Strip out source markers if present
       if (trimmed.includes("");
         if (endIdx > -1) trimmed = trimmed.substring(endIdx + 1).trim();
       }
 
+      const cleanRaw = rawLine.includes("") > -1 
+        ? rawLine.substring(rawLine.indexOf("]") + 1) 
+        : rawLine;
+      const indentWidth = getIndent(cleanRaw);
+
+      // FRONT MATTER SKIPPING
+      if (!scriptStarted) {
+        if (isLikelyScene(trimmed) || trimmed === "FADE IN:") {
+          scriptStarted = true;
+        } else {
+          continue;
+        }
+      }
+
+      // BLANK LINE
       if (trimmed === "") {
         finishDialogue();
         finishActionBuffer();
         continue;
       }
 
+      // SCENE HEADING
       if (isLikelyScene(trimmed)) {
         finishDialogue();
         finishActionBuffer();
@@ -124,6 +155,7 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
         scenes.push(currentScene);
       }
 
+      // TRANSITION
       if (isLikelyTransition(trimmed)) {
         finishDialogue();
         finishActionBuffer();
@@ -131,23 +163,38 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
         continue;
       }
 
+      // CHARACTER
       if (isLikelyCharacter(trimmed)) {
-        finishDialogue();
-        finishActionBuffer();
-        currentDialogue = { character: trimmed, parenthetical: "", dialogue: "" };
-        continue;
+        let isCharacter = false;
+        if (learnedCharIndent == null) {
+          isCharacter = true;
+          learnedCharIndent = indentWidth;
+        } else {
+          const diff = Math.abs(indentWidth - learnedCharIndent);
+          if (diff <= 8) isCharacter = true;
+        }
+
+        if (isCharacter) {
+          finishDialogue();
+          finishActionBuffer();
+          currentDialogue = { character: trimmed, parenthetical: "", dialogue: "" };
+          continue;
+        }
       }
 
+      // PARENTHETICAL
       if (isLikelyParenthetical(trimmed) && currentDialogue && !currentDialogue.parenthetical) {
         currentDialogue.parenthetical = trimmed.substring(1, trimmed.length - 1).trim();
         continue;
       }
 
+      // DIALOGUE
       if (currentDialogue) {
         currentDialogue.dialogue += (currentDialogue.dialogue ? " " : "") + trimmed;
         continue;
       }
 
+      // ACTION
       actionBuffer.push(trimmed);
     }
 
@@ -186,11 +233,13 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
       if (data.characters) {
         for (const char of data.characters) {
           const newDocRef = doc(collection(db, 'projects', projectId, 'characters'));
-          await setDoc(newDocRef, {
+          // Strip undefined values instantly using JSON parsing
+          const payload = JSON.parse(JSON.stringify({
             id: newDocRef.id, projectId, name: char.name || 'Unknown', role: char.role || '',
             description: char.description || '', traits: '', imageUrl: '',
             createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-          });
+          }));
+          await setDoc(newDocRef, payload);
         }
       }
 
@@ -202,21 +251,30 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
           const newDocRef = doc(collection(db, 'projects', projectId, 'scenes'));
           generatedScenes.push({ id: newDocRef.id, title: scene.title || 'Untitled Scene' });
           
-          // FIRM FIX: Firestore hates "undefined". We selectively map only existing properties.
           const blocksWithIds = (scene.scriptBlocks || []).map((b: any) => {
             const block: any = { id: crypto.randomUUID(), type: b.type };
-            if (b.text !== undefined) block.text = b.text;
-            if (b.character !== undefined) block.character = b.character;
-            if (b.parenthetical !== undefined) block.parenthetical = b.parenthetical;
-            if (b.dialogue !== undefined) block.dialogue = b.dialogue;
+            if (b.text) block.text = b.text;
+            if (b.character) block.character = b.character;
+            if (b.parenthetical) block.parenthetical = b.parenthetical;
+            if (b.dialogue) block.dialogue = b.dialogue;
             return block;
           });
 
-          await setDoc(newDocRef, {
-            id: newDocRef.id, projectId, title: scene.title || 'Untitled Scene',
-            description: scene.description || '', content: '', scriptBlocks: blocksWithIds,
-            order: order++, status: 'draft', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-          });
+          // FIRM FIX: Firestore hates "undefined". JSON parse/stringify aggressively strips all undefined fields.
+          const scenePayload = JSON.parse(JSON.stringify({
+            id: newDocRef.id, 
+            projectId, 
+            title: scene.title || 'Untitled Scene',
+            description: scene.description || '', 
+            content: '', 
+            scriptBlocks: blocksWithIds,
+            order: order++, 
+            status: 'draft', 
+            createdAt: new Date().toISOString(), 
+            updatedAt: new Date().toISOString()
+          }));
+
+          await setDoc(newDocRef, scenePayload);
         }
       }
 
@@ -233,12 +291,13 @@ export function ImportDialog({ open, onOpenChange, projectId, onSuccess }: Impor
           }
 
           const newDocRef = doc(collection(db, 'projects', projectId, 'productionElements'));
-          await setDoc(newDocRef, {
+          const prodPayload = JSON.parse(JSON.stringify({
             id: newDocRef.id, projectId, category: el.category || 'prop',
             name: el.name || 'Unknown', description: el.description || '',
             sceneId: matchedSceneId, tags: '',
             createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-          });
+          }));
+          await setDoc(newDocRef, prodPayload);
         }
       }
 
